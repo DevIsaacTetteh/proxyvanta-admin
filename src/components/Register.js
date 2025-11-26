@@ -81,6 +81,8 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log('Admin Register attempt on device:', navigator.userAgent);
+    console.log('API URL:', process.env.REACT_APP_API_URL);
 
     if (!formData.email || !formData.password || !formData.confirmPassword) {
       setError('Please fill in all fields');
@@ -107,13 +109,16 @@ const Register = () => {
     setMessage('');
 
     try {
+      console.log('Calling admin register API...');
       await api.post('/auth/admin-register', {
         email: formData.email,
         password: formData.password
       });
+      console.log('Admin register successful');
       setMessage('Admin account created successfully! Redirecting to login...');
       setTimeout(() => navigate('/login'), 3000);
     } catch (err) {
+      console.error('Admin register error:', err);
       setError(err.response?.data?.message || 'Registration failed. Please try again.');
     } finally {
       setLoading(false);

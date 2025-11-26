@@ -56,8 +56,8 @@ const SupportTickets = () => {
       <Typography variant="h4" gutterBottom>
         Support Tickets
       </Typography>
-      <TableContainer component={Paper}>
-        <Table>
+      <TableContainer component={Paper} sx={{ overflowX: 'auto' }}>
+        <Table sx={{ minWidth: 600 }}>
           <TableHead>
             <TableRow>
               <TableCell>User</TableCell>

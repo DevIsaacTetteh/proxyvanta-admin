@@ -56,6 +56,8 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log('Admin Login attempt on device:', navigator.userAgent);
+    console.log('API URL:', process.env.REACT_APP_API_URL);
 
     if (!formData.email || !formData.password) {
       setError('Please fill in all fields');
@@ -66,9 +68,12 @@ const Login = () => {
     setError('');
 
     try {
+      console.log('Calling admin login API...');
       await login(formData.email, formData.password);
+      console.log('Admin login successful');
       navigate('/dashboard');
     } catch (err) {
+      console.error('Admin login error:', err);
       setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
     } finally {
       setLoading(false);

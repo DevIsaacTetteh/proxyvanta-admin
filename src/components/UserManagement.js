@@ -295,8 +295,8 @@ const UserManagement = () => {
       {/* Users Table */}
       <Card sx={{ borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
         <CardContent sx={{ p: 0 }}>
-          <TableContainer>
-            <Table>
+          <TableContainer sx={{ overflowX: 'auto' }}>
+            <Table sx={{ minWidth: 600 }}>
               <TableHead sx={{
                 background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
                 '& .MuiTableCell-head': {

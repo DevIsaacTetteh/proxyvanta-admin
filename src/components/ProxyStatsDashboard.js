@@ -141,8 +141,8 @@ const ProxyStatsDashboard = () => {
               <ChartIcon sx={{ mr: 1, color: 'info.main' }} />
               <Typography variant="h6">IP Tier Statistics</Typography>
             </Box>
-            <TableContainer component={Paper} elevation={0}>
-              <Table>
+            <TableContainer component={Paper} elevation={0} sx={{ overflowX: 'auto' }}>
+              <Table sx={{ minWidth: 600 }}>
                 <TableHead>
                   <TableRow sx={{ backgroundColor: 'grey.100' }}>
                     <TableCell sx={{ fontWeight: 'bold' }}>IP Count</TableCell>

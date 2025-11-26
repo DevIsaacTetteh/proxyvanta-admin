@@ -268,8 +268,8 @@ const SupportManagement = () => {
               Support Tickets ({tickets.length})
             </Typography>
 
-            <TableContainer>
-              <Table>
+            <TableContainer sx={{ overflowX: 'auto' }}>
+              <Table sx={{ minWidth: 600 }}>
                 <TableHead>
                   <TableRow>
                     <TableCell>User</TableCell>
