@@ -14,7 +14,6 @@ const PricingConfig = () => {
   const [selectedIPs, setSelectedIPs] = useState(5);
   const [pricingGroups, setPricingGroups] = useState([]);
   
-  const [masterBalance, setMasterBalance] = useState(0);
   const [currencyBalance, setCurrencyBalance] = useState(0);
   const [proxyStats, setProxyStats] = useState(null);
   const [error, setError] = useState('');
@@ -87,7 +86,6 @@ const PricingConfig = () => {
   const fetchMasterBalance = async () => {
     try {
       const response = await api.get('/admin/master/balance');
-      setMasterBalance(response.data.balance);
       setCurrencyBalance(response.data.currencyBalance);
     } catch (error) {
       console.error('Failed to fetch master balance:', error);
