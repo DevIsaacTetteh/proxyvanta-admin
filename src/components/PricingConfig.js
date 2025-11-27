@@ -4,7 +4,7 @@ import {
   TextField, Paper, Chip, Avatar, Container
 } from '@mui/material';
 import {
-  Refresh as RefreshIcon, MonetizationOn as MoneyIcon,
+  Refresh as RefreshIcon,
   Inventory as InventoryIcon, Settings as SettingsIcon,
   TrendingUp as TrendingUpIcon, Save as SaveIcon
 } from '@mui/icons-material';
@@ -14,7 +14,6 @@ const PricingConfig = () => {
   const [selectedIPs, setSelectedIPs] = useState(5);
   const [pricingGroups, setPricingGroups] = useState([]);
   
-  const [currencyBalance, setCurrencyBalance] = useState(0);
   const [proxyStats, setProxyStats] = useState(null);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
@@ -85,8 +84,7 @@ const PricingConfig = () => {
 
   const fetchMasterBalance = async () => {
     try {
-      const response = await api.get('/admin/master/balance');
-      setCurrencyBalance(response.data.currencyBalance);
+      await api.get('/admin/master/balance');
     } catch (error) {
       console.error('Failed to fetch master balance:', error);
     }

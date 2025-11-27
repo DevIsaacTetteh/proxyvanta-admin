@@ -99,6 +99,7 @@ const NewsManagement = () => {
         content: `🎥 Video Content: ${videoName}`
       }));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData.videoFile, formData.videoUrl]);
 
   const showSnackbar = (message, severity = 'success') => {
