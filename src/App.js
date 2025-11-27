@@ -15,6 +15,8 @@ import ProxyPoolManagement from './components/ProxyPoolManagement';
 import ProxyStatsDashboard from './components/ProxyStatsDashboard';
 import LogsMonitor from './components/LogsMonitor';
 import SupportManagement from './components/SupportManagement';
+import EmailManagement from './components/EmailManagement';
+import NewsManagement from './components/NewsManagement';
 import {
   AppBar,
   Toolbar,
@@ -43,9 +45,11 @@ import {
   BarChart as BarChartIcon,
   Assessment as AssessmentIcon,
   Support as SupportIcon,
+  Email as EmailIcon,
   Security as SecurityIcon,
   AdminPanelSettings as AdminIcon,
-  Logout as LogoutIcon
+  Logout as LogoutIcon,
+  Campaign as CampaignIcon
 } from '@mui/icons-material';
 
 const theme = createTheme({
@@ -268,11 +272,13 @@ const Layout = ({ children }) => {
     { text: 'Dashboard', path: '/dashboard', icon: <DashboardIcon /> },
     { text: 'Users', path: '/users', icon: <PeopleIcon /> },
     { text: 'Orders', path: '/orders', icon: <ShoppingCartIcon /> },
+    { text: 'News', path: '/news', icon: <CampaignIcon /> },
     { text: 'Pricing', path: '/pricing', icon: <AttachMoneyIcon /> },
     { text: 'Proxy Pool', path: '/proxies/pool', icon: <VpnKeyIcon /> },
     { text: 'Proxy Stats', path: '/proxies/stats', icon: <BarChartIcon /> },
     { text: 'Logs', path: '/logs', icon: <AssessmentIcon /> },
     { text: 'Support', path: '/tickets', icon: <SupportIcon /> },
+    { text: 'Emails', path: '/emails', icon: <EmailIcon /> },
   ];
 
   const handleDrawerToggle = () => {
@@ -512,6 +518,11 @@ function App() {
                 <Layout><OrderManagement /></Layout>
               </ProtectedRoute>
             } />
+            <Route path="/news" element={
+              <ProtectedRoute>
+                <Layout><NewsManagement /></Layout>
+              </ProtectedRoute>
+            } />
             <Route path="/pricing" element={
               <ProtectedRoute>
                 <Layout><PricingConfig /></Layout>
@@ -535,6 +546,11 @@ function App() {
             <Route path="/tickets" element={
               <ProtectedRoute>
                 <Layout><SupportManagement /></Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/emails" element={
+              <ProtectedRoute>
+                <Layout><EmailManagement /></Layout>
               </ProtectedRoute>
             } />
             <Route path="/" element={<Navigate to="/login" />} />

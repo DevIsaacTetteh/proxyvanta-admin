@@ -49,11 +49,11 @@ const ForgotPassword = () => {
     try {
       const response = await api.post('/auth/forgot-password', { email });
       setEmailSent(true);
-      setMessage(response.data.message);
+      setMessage('Password reset instructions have been sent to your email address.');
 
-      // In development, show the reset token
+      // In development, also show the reset token for testing
       if (response.data.resetToken) {
-        setMessage(`${response.data.message}\n\nReset Token: ${response.data.resetToken}\n\nUse this URL: ${window.location.origin}/reset-password/${response.data.resetToken}`);
+        setMessage(`Password reset instructions have been sent to your email address.\n\nFor testing purposes:\nReset Token: ${response.data.resetToken}\n\nDirect Link: ${window.location.origin}/reset-password/${response.data.resetToken}`);
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to send reset email. Please try again.');
@@ -70,7 +70,7 @@ const ForgotPassword = () => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        p: 2,
+        p: { xs: 1, sm: 2 },
         position: 'relative',
         '&::before': {
           content: '""',
@@ -88,30 +88,30 @@ const ForgotPassword = () => {
         <Card
           elevation={24}
           sx={{
-            maxWidth: 450,
+            maxWidth: { xs: '100%', sm: 450 },
             width: '100%',
-            mx: 2,
-            borderRadius: 4,
+            mx: { xs: 1, sm: 2 },
+            borderRadius: { xs: 2, sm: 4 },
             backdropFilter: 'blur(20px)',
             background: 'rgba(255, 255, 255, 0.95)',
             border: '1px solid rgba(255, 255, 255, 0.2)',
             boxShadow: '0 25px 50px rgba(0, 0, 0, 0.15)',
           }}
         >
-          <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
+          <CardContent sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
             {/* Header */}
-            <Box sx={{ textAlign: 'center', mb: 3 }}>
+            <Box sx={{ textAlign: 'center', mb: { xs: 2, sm: 3 } }}>
               <Avatar
                 sx={{
-                  width: 80,
-                  height: 80,
+                  width: { xs: 60, sm: 80 },
+                  height: { xs: 60, sm: 80 },
                   mx: 'auto',
                   mb: 2,
                   background: 'linear-gradient(135deg, #1a237e 0%, #311b92 100%)',
                   boxShadow: '0 8px 25px rgba(26, 35, 126, 0.3)',
                 }}
               >
-                <AdminPanelSettings sx={{ fontSize: 40, color: 'white' }} />
+                <AdminPanelSettings sx={{ fontSize: { xs: 30, sm: 40 }, color: 'white' }} />
               </Avatar>
               <Typography
                 variant="h4"
@@ -123,17 +123,22 @@ const ForgotPassword = () => {
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                   mb: 1,
+                  fontSize: { xs: '1.5rem', sm: '2rem', md: '2.125rem' }
                 }}
               >
                 Admin Password Reset
               </Typography>
-              <Typography variant="body1" color="text.secondary">
+              <Typography 
+                variant="body1" 
+                color="text.secondary"
+                sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}
+              >
                 Enter your admin email address and we'll send you a link to reset your password
               </Typography>
             </Box>
 
             {/* Back to Login */}
-            <Box sx={{ mb: 3 }}>
+            <Box sx={{ mb: { xs: 2, sm: 3 } }}>
               <Button
                 startIcon={<ArrowBack />}
                 onClick={() => navigate('/login')}
@@ -141,6 +146,7 @@ const ForgotPassword = () => {
                   color: theme.palette.primary.main,
                   textTransform: 'none',
                   fontWeight: 500,
+                  fontSize: { xs: '0.875rem', sm: '1rem' },
                   '&:hover': {
                     backgroundColor: 'rgba(26, 35, 126, 0.08)',
                   }
@@ -203,7 +209,7 @@ const ForgotPassword = () => {
                   required
                   autoComplete="email"
                   sx={{
-                    mb: 3,
+                    mb: { xs: 2, sm: 3 },
                     '& .MuiOutlinedInput-root': {
                       borderRadius: 2,
                       '&:hover fieldset': {
@@ -213,10 +219,16 @@ const ForgotPassword = () => {
                         borderColor: theme.palette.primary.main,
                       },
                     },
+                    '& .MuiInputLabel-root': {
+                      fontSize: { xs: '0.875rem', sm: '1rem' }
+                    },
+                    '& .MuiOutlinedInput-input': {
+                      fontSize: { xs: '0.875rem', sm: '1rem' }
+                    }
                   }}
                   InputProps={{
                     startAdornment: (
-                      <Email sx={{ color: 'action.active', mr: 1 }} />
+                      <Email sx={{ color: 'action.active', mr: 1, fontSize: { xs: 18, sm: 20 } }} />
                     ),
                   }}
                 />
@@ -228,10 +240,10 @@ const ForgotPassword = () => {
                   disabled={loading}
                   startIcon={loading ? null : <Send />}
                   sx={{
-                    py: 1.5,
+                    py: { xs: 1.25, sm: 1.5 },
                     borderRadius: 2,
                     fontWeight: 600,
-                    fontSize: '1rem',
+                    fontSize: { xs: '0.875rem', sm: '1rem' },
                     textTransform: 'none',
                     background: 'linear-gradient(135deg, #1a237e 0%, #311b92 100%)',
                     boxShadow: '0 4px 15px rgba(26, 35, 126, 0.4)',
@@ -253,8 +265,8 @@ const ForgotPassword = () => {
             )}
 
             {/* Footer */}
-            <Box sx={{ mt: 3, textAlign: 'center' }}>
-              <Typography variant="body2" color="text.secondary">
+            <Box sx={{ mt: { xs: 2, sm: 3 }, textAlign: 'center' }}>
+              <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
                 Remember your password?{' '}
                 <Link
                   component="button"
@@ -264,6 +276,7 @@ const ForgotPassword = () => {
                     color: theme.palette.primary.main,
                     textDecoration: 'none',
                     fontWeight: 600,
+                    fontSize: { xs: '0.75rem', sm: '0.875rem' },
                     '&:hover': {
                       textDecoration: 'underline',
                     },

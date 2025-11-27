@@ -13,6 +13,7 @@ import api from '../services/api';
 const PricingConfig = () => {
   const [selectedIPs, setSelectedIPs] = useState(5);
   const [pricingGroups, setPricingGroups] = useState([]);
+  
   const [masterBalance, setMasterBalance] = useState(0);
   const [currencyBalance, setCurrencyBalance] = useState(0);
   const [proxyStats, setProxyStats] = useState(null);
@@ -138,28 +139,53 @@ const PricingConfig = () => {
   };
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 600, color: '#1a237e' }}>
-          <SettingsIcon sx={{ mr: 2, verticalAlign: 'middle' }} />
+    <Container 
+      maxWidth="lg" 
+      sx={{ 
+        py: { xs: 2, sm: 3, md: 4 },
+        px: { xs: 2, sm: 3 }
+      }}
+    >
+      <Box sx={{ mb: { xs: 3, sm: 4 } }}>
+        <Typography 
+          variant="h4" 
+          component="h1" 
+          gutterBottom 
+          sx={{ 
+            fontWeight: 600, 
+            color: '#1a237e',
+            fontSize: { xs: '1.5rem', sm: '2rem', md: '2.25rem' }
+          }}
+        >
+          <SettingsIcon sx={{ mr: { xs: 1, sm: 2 }, verticalAlign: 'middle' }} />
           Pricing Configuration
         </Typography>
-        <Typography variant="body1" color="text.secondary">
+        <Typography 
+          variant="body1" 
+          color="text.secondary"
+          sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}
+        >
           Manage proxy pricing tiers and monitor account balances
         </Typography>
       </Box>
 
       {/* Master Account Balances */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} md={6}>
+      <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ mb: { xs: 3, sm: 4 } }}>
+        <Grid item xs={12}>
           <Card sx={{ height: '100%', boxShadow: 2, borderRadius: 2 }}>
-            <CardContent sx={{ p: 3 }}>
+            <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <Avatar sx={{ bgcolor: '#e3f2fd', mr: 2 }}>
+                  <Avatar sx={{ bgcolor: '#e3f2fd', mr: { xs: 1, sm: 2 } }}>
                     <InventoryIcon sx={{ color: '#1976d2' }} />
                   </Avatar>
-                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                  <Typography 
+                    variant="h6" 
+                    sx={{ 
+                      fontWeight: 600,
+                      fontSize: { xs: '1rem', sm: '1.25rem' }
+                    }}
+                  >
                     Available IP Addresses
                   </Typography>
                 </Box>
@@ -175,32 +201,23 @@ const PricingConfig = () => {
                   <RefreshIcon />
                 </IconButton>
               </Box>
-              <Typography variant="h3" sx={{ fontWeight: 700, color: '#2e7d32', mb: 1 }}>
+              <Typography 
+                variant="h3" 
+                sx={{ 
+                  fontWeight: 700, 
+                  color: '#2e7d32', 
+                  mb: 1,
+                  fontSize: { xs: '2rem', sm: '2.5rem', md: '3rem' }
+                }}
+              >
                 {proxyStats?.unassigned?.toLocaleString() || '0'}
               </Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography 
+                variant="body2" 
+                color="text.secondary"
+                sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
+              >
                 Proxies available for purchase
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} md={6}>
-          <Card sx={{ height: '100%', boxShadow: 2, borderRadius: 2 }}>
-            <CardContent sx={{ p: 3 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <Avatar sx={{ bgcolor: '#fff3e0', mr: 2 }}>
-                  <MoneyIcon sx={{ color: '#f57c00' }} />
-                </Avatar>
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  Currency Balance
-                </Typography>
-              </Box>
-              <Typography variant="h3" sx={{ fontWeight: 700, color: '#f57c00', mb: 1 }}>
-                {currencyBalance.toLocaleString()}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Available funds for purchasing IPs
               </Typography>
             </CardContent>
           </Card>
@@ -208,23 +225,49 @@ const PricingConfig = () => {
       </Grid>
 
       {/* Current Pricing Overview */}
-      <Card sx={{ mb: 4, boxShadow: 2, borderRadius: 2 }}>
-        <CardContent sx={{ p: 3 }}>
-          <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, display: 'flex', alignItems: 'center' }}>
+      <Card sx={{ mb: { xs: 3, sm: 4 }, boxShadow: 2, borderRadius: 2 }}>
+        <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+          <Typography 
+            variant="h6" 
+            gutterBottom 
+            sx={{ 
+              fontWeight: 600, 
+              display: 'flex', 
+              alignItems: 'center',
+              fontSize: { xs: '1.125rem', sm: '1.25rem' }
+            }}
+          >
             <TrendingUpIcon sx={{ mr: 1 }} />
             Current Pricing Overview
           </Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: { xs: 1, sm: 2 } }}>
             <Box sx={{ textAlign: 'center' }}>
-              <Typography variant="h4" sx={{ fontWeight: 700, color: '#1976d2', mb: 1 }}>
+              <Typography 
+                variant="h4" 
+                sx={{ 
+                  fontWeight: 700, 
+                  color: '#1976d2', 
+                  mb: 1,
+                  fontSize: { xs: '1.75rem', sm: '2.125rem', md: '2.5rem' }
+                }}
+              >
                 GHS {getCurrentPrice().toFixed(2)}
               </Typography>
-              <Typography variant="body1" color="text.secondary">
+              <Typography 
+                variant="body1" 
+                color="text.secondary"
+                sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}
+              >
                 per IP for {selectedIPs} IPs
               </Typography>
               <Chip
                 label={pricingGroups.find(g => selectedIPs >= g.min && selectedIPs <= g.max)?.range}
-                sx={{ mt: 1, bgcolor: '#e3f2fd', color: '#1976d2' }}
+                sx={{ 
+                  mt: 1, 
+                  bgcolor: '#e3f2fd', 
+                  color: '#1976d2',
+                  fontSize: { xs: '0.75rem', sm: '0.875rem' }
+                }}
               />
             </Box>
           </Box>
@@ -232,12 +275,20 @@ const PricingConfig = () => {
       </Card>
 
       {/* Pricing Configuration */}
-      <Grid container spacing={3}>
+      <Grid container spacing={{ xs: 2, sm: 3 }}>
         {/* IP Quantity Selector */}
         <Grid item xs={12} md={8}>
           <Card sx={{ boxShadow: 2, borderRadius: 2 }}>
-            <CardContent sx={{ p: 3 }}>
-              <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
+            <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+              <Typography 
+                variant="h6" 
+                gutterBottom 
+                sx={{ 
+                  fontWeight: 600, 
+                  mb: { xs: 2, sm: 3 },
+                  fontSize: { xs: '1.125rem', sm: '1.25rem' }
+                }}
+              >
                 Select IP Quantity to Configure
               </Typography>
               <Grid container spacing={1}>
@@ -248,9 +299,10 @@ const PricingConfig = () => {
                       fullWidth
                       onClick={() => setSelectedIPs(ip)}
                       sx={{
-                        py: 1.5,
+                        py: { xs: 1, sm: 1.5 },
                         borderRadius: 2,
                         fontWeight: 600,
+                        fontSize: { xs: '0.75rem', sm: '0.875rem' },
                         ...(selectedIPs === ip && {
                           bgcolor: '#1976d2',
                           '&:hover': { bgcolor: '#1565c0' }
@@ -269,11 +321,25 @@ const PricingConfig = () => {
         {/* Price Editor */}
         <Grid item xs={12} md={4}>
           <Card sx={{ boxShadow: 2, borderRadius: 2, height: '100%' }}>
-            <CardContent sx={{ p: 3 }}>
-              <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+            <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+              <Typography 
+                variant="h6" 
+                gutterBottom 
+                sx={{ 
+                  fontWeight: 600,
+                  fontSize: { xs: '1.125rem', sm: '1.25rem' }
+                }}
+              >
                 Edit Price
               </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              <Typography 
+                variant="body2" 
+                color="text.secondary" 
+                sx={{ 
+                  mb: 2,
+                  fontSize: { xs: '0.75rem', sm: '0.875rem' }
+                }}
+              >
                 {pricingGroups.find(g => selectedIPs >= g.min && selectedIPs <= g.max)?.range}
               </Typography>
               <TextField
@@ -284,8 +350,15 @@ const PricingConfig = () => {
                 fullWidth
                 inputProps={{ min: 0, step: 0.01 }}
                 sx={{
+                  mb: 2,
                   '& .MuiOutlinedInput-root': {
                     borderRadius: 2
+                  },
+                  '& .MuiInputLabel-root': {
+                    fontSize: { xs: '0.875rem', sm: '1rem' }
+                  },
+                  '& .MuiOutlinedInput-input': {
+                    fontSize: { xs: '0.875rem', sm: '1rem' }
                   }
                 }}
               />
@@ -296,10 +369,10 @@ const PricingConfig = () => {
                 onClick={handlePriceUpdate}
                 disabled={loading}
                 sx={{
-                  mt: 2,
-                  py: 1.5,
+                  py: { xs: 1, sm: 1.5 },
                   borderRadius: 2,
-                  fontWeight: 600
+                  fontWeight: 600,
+                  fontSize: { xs: '0.875rem', sm: '1rem' }
                 }}
               >
                 {loading ? 'Updating...' : 'Update Price'}
@@ -310,29 +383,55 @@ const PricingConfig = () => {
       </Grid>
 
       {/* Pricing Tiers Table */}
-      <Card sx={{ mt: 3, boxShadow: 2, borderRadius: 2 }}>
-        <CardContent sx={{ p: 3 }}>
-          <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
+      <Card sx={{ mt: { xs: 2, sm: 3 }, boxShadow: 2, borderRadius: 2 }}>
+        <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+          <Typography 
+            variant="h6" 
+            gutterBottom 
+            sx={{ 
+              fontWeight: 600, 
+              mb: { xs: 2, sm: 3 },
+              fontSize: { xs: '1.125rem', sm: '1.25rem' }
+            }}
+          >
             Current Pricing Tiers
           </Typography>
-          <Grid container spacing={2}>
+          <Grid container spacing={{ xs: 1, sm: 2 }}>
             {pricingGroups.map((group, index) => (
               <Grid item xs={12} sm={6} md={4} key={index}>
                 <Paper
                   sx={{
-                    p: 2,
+                    p: { xs: 1.5, sm: 2 },
                     borderRadius: 2,
                     bgcolor: selectedIPs >= group.min && selectedIPs <= group.max ? '#e3f2fd' : '#fafafa',
                     border: selectedIPs >= group.min && selectedIPs <= group.max ? '2px solid #1976d2' : '1px solid #e0e0e0'
                   }}
                 >
-                  <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
+                  <Typography 
+                    variant="subtitle1" 
+                    sx={{ 
+                      fontWeight: 600, 
+                      mb: 1,
+                      fontSize: { xs: '0.875rem', sm: '1rem' }
+                    }}
+                  >
                     {group.range}
                   </Typography>
-                  <Typography variant="h5" sx={{ fontWeight: 700, color: '#1976d2' }}>
+                  <Typography 
+                    variant="h5" 
+                    sx={{ 
+                      fontWeight: 700, 
+                      color: '#1976d2',
+                      fontSize: { xs: '1.25rem', sm: '1.5rem', md: '1.75rem' }
+                    }}
+                  >
                     GHS {group.price.toFixed(2)}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography 
+                    variant="body2" 
+                    color="text.secondary"
+                    sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
+                  >
                     per IP
                   </Typography>
                 </Paper>

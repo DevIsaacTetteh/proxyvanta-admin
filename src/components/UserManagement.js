@@ -2,9 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Typography, Box, Button, Dialog, DialogTitle, DialogContent,
-  DialogActions, List, ListItem, ListItemText, Card, CardContent,
-   Avatar, Chip, TextField, InputAdornment,
-  Grid, CircularProgress, IconButton, Tooltip, Divider
+  DialogActions, Card, CardContent, Avatar, Chip, TextField, InputAdornment,
+  Grid, CircularProgress, IconButton, Tooltip, Divider, useMediaQuery, useTheme
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -17,7 +16,16 @@ import {
   Email as EmailIcon,
   CalendarToday as CalendarIcon,
   ShoppingCart as ShoppingCartIcon,
-  Receipt as ReceiptIcon
+  Receipt as ReceiptIcon,
+  Check as CheckIcon,
+  Close as CloseIcon,
+  Schedule as ScheduleIcon,
+  CreditCard as CreditCardIcon,
+  VpnKey as VpnKeyIcon,
+  Numbers as NumbersIcon,
+  Delete as DeleteIcon,
+  Block as BlockIcon,
+  CheckCircle as ActiveIcon
 } from '@mui/icons-material';
 import api from '../services/api';
 
@@ -29,6 +37,9 @@ const UserManagement = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [stats, setStats] = useState({ total: 0, active: 0, admins: 0, totalBalance: 0 });
+
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -82,6 +93,52 @@ const UserManagement = () => {
     setUserDetails(null);
   };
 
+  const handleApproveTransaction = async (transactionId) => {
+    try {
+      await api.put(`/admin/transactions/${transactionId}/approve`);
+      // Refresh user details to show updated transaction status
+      if (selectedUser) {
+        const response = await api.get(`/admin/users/${selectedUser}`);
+        setUserDetails(response.data);
+      }
+    } catch (error) {
+      console.error('Failed to approve transaction:', error);
+    }
+  };
+
+  const handleDeleteUser = async (userId, userEmail) => {
+    if (!window.confirm(`Are you sure you want to permanently delete user ${userEmail}? This action cannot be undone and will delete all associated data.`)) {
+      return;
+    }
+
+    try {
+      await api.delete(`/admin/users/${userId}`);
+      // Refresh the users list
+      await fetchUsers();
+      alert('User deleted successfully');
+    } catch (error) {
+      console.error('Failed to delete user:', error);
+      alert('Failed to delete user: ' + (error.response?.data?.message || error.message));
+    }
+  };
+
+  const handleToggleSuspension = async (userId, userEmail, currentlySuspended) => {
+    const action = currentlySuspended ? 'unsuspend' : 'suspend';
+    if (!window.confirm(`Are you sure you want to ${action} user ${userEmail}?`)) {
+      return;
+    }
+
+    try {
+      await api.patch(`/admin/users/${userId}/toggle-suspension`);
+      // Refresh the users list
+      await fetchUsers();
+      alert(`User ${action}ed successfully`);
+    } catch (error) {
+      console.error('Failed to toggle user suspension:', error);
+      alert(`Failed to ${action} user: ` + (error.response?.data?.message || error.message));
+    }
+  };
+
   const getRoleColor = (role) => {
     switch (role) {
       case 'admin': return 'error';
@@ -103,9 +160,9 @@ const UserManagement = () => {
   }
 
   return (
-    <Box sx={{ p: { xs: 2, sm: 3, md: 4 }, maxWidth: '1400px', mx: 'auto' }}>
+    <Box sx={{ p: { xs: 1, sm: 2, md: 3, lg: 4 }, maxWidth: '1400px', mx: 'auto' }}>
       {/* Header */}
-      <Box sx={{ mb: 4, textAlign: 'center' }}>
+      <Box sx={{ mb: { xs: 2, sm: 3, md: 4 }, textAlign: 'center' }}>
         <Typography
           variant="h3"
           component="h1"
@@ -116,17 +173,27 @@ const UserManagement = () => {
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             mb: 2,
+            fontSize: { xs: '1.75rem', sm: '2rem', md: '2.25rem', lg: '2.5rem' }
           }}
         >
           User Management
         </Typography>
-        <Typography variant="body1" color="text.secondary" sx={{ maxWidth: '600px', mx: 'auto' }}>
+        <Typography
+          variant="body1"
+          color="text.secondary"
+          sx={{
+            maxWidth: '600px',
+            mx: 'auto',
+            px: { xs: 2, sm: 0 },
+            fontSize: { xs: '0.875rem', sm: '1rem' }
+          }}
+        >
           Monitor and manage all registered users, their balances, and account activities.
         </Typography>
       </Box>
 
       {/* Statistics Cards */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
+      <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ mb: { xs: 3, sm: 4 } }}>
         <Grid item xs={12} sm={6} md={3}>
           <Card sx={{
             borderRadius: 3,
@@ -140,21 +207,40 @@ const UserManagement = () => {
               position: 'absolute',
               top: 0,
               right: 0,
-              width: '100px',
-              height: '100px',
+              width: { xs: '80px', sm: '100px' },
+              height: { xs: '80px', sm: '100px' },
               background: 'rgba(255,255,255,0.1)',
               borderRadius: '50%',
               transform: 'translate(30px, -30px)',
             }
           }}>
-            <CardContent sx={{ textAlign: 'center', py: 3, position: 'relative', zIndex: 1 }}>
-              <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', mx: 'auto', mb: 1, width: 48, height: 48 }}>
-                <PeopleIcon sx={{ fontSize: 24 }} />
+            <CardContent sx={{
+              textAlign: 'center',
+              py: { xs: 2, sm: 3 },
+              px: { xs: 2, sm: 3 },
+              position: 'relative',
+              zIndex: 1
+            }}>
+              <Avatar sx={{
+                bgcolor: 'rgba(255,255,255,0.2)',
+                mx: 'auto',
+                mb: 1,
+                width: { xs: 40, sm: 48 },
+                height: { xs: 40, sm: 48 }
+              }}>
+                <PeopleIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
               </Avatar>
-              <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
+              <Typography
+                variant="h4"
+                sx={{
+                  fontWeight: 700,
+                  mb: 0.5,
+                  fontSize: { xs: '1.5rem', sm: '1.75rem', md: '2rem' }
+                }}
+              >
                 {stats.total}
               </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.9 }}>
+              <Typography variant="body2" sx={{ opacity: 0.9, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
                 Total Users
               </Typography>
             </CardContent>
@@ -173,21 +259,40 @@ const UserManagement = () => {
               position: 'absolute',
               top: 0,
               right: 0,
-              width: '100px',
-              height: '100px',
+              width: { xs: '80px', sm: '100px' },
+              height: { xs: '80px', sm: '100px' },
               background: 'rgba(255,255,255,0.1)',
               borderRadius: '50%',
               transform: 'translate(30px, -30px)',
             }
           }}>
-            <CardContent sx={{ textAlign: 'center', py: 3, position: 'relative', zIndex: 1 }}>
-              <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', mx: 'auto', mb: 1, width: 48, height: 48 }}>
-                <CheckCircleIcon sx={{ fontSize: 24 }} />
+            <CardContent sx={{
+              textAlign: 'center',
+              py: { xs: 2, sm: 3 },
+              px: { xs: 2, sm: 3 },
+              position: 'relative',
+              zIndex: 1
+            }}>
+              <Avatar sx={{
+                bgcolor: 'rgba(255,255,255,0.2)',
+                mx: 'auto',
+                mb: 1,
+                width: { xs: 40, sm: 48 },
+                height: { xs: 40, sm: 48 }
+              }}>
+                <CheckCircleIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
               </Avatar>
-              <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
+              <Typography
+                variant="h4"
+                sx={{
+                  fontWeight: 700,
+                  mb: 0.5,
+                  fontSize: { xs: '1.5rem', sm: '1.75rem', md: '2rem' }
+                }}
+              >
                 {stats.active}
               </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.9 }}>
+              <Typography variant="body2" sx={{ opacity: 0.9, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
                 Active Users
               </Typography>
             </CardContent>
@@ -206,21 +311,40 @@ const UserManagement = () => {
               position: 'absolute',
               top: 0,
               right: 0,
-              width: '100px',
-              height: '100px',
+              width: { xs: '80px', sm: '100px' },
+              height: { xs: '80px', sm: '100px' },
               background: 'rgba(255,255,255,0.1)',
               borderRadius: '50%',
               transform: 'translate(30px, -30px)',
             }
           }}>
-            <CardContent sx={{ textAlign: 'center', py: 3, position: 'relative', zIndex: 1 }}>
-              <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', mx: 'auto', mb: 1, width: 48, height: 48 }}>
-                <AdminIcon sx={{ fontSize: 24 }} />
+            <CardContent sx={{
+              textAlign: 'center',
+              py: { xs: 2, sm: 3 },
+              px: { xs: 2, sm: 3 },
+              position: 'relative',
+              zIndex: 1
+            }}>
+              <Avatar sx={{
+                bgcolor: 'rgba(255,255,255,0.2)',
+                mx: 'auto',
+                mb: 1,
+                width: { xs: 40, sm: 48 },
+                height: { xs: 40, sm: 48 }
+              }}>
+                <AdminIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
               </Avatar>
-              <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
+              <Typography
+                variant="h4"
+                sx={{
+                  fontWeight: 700,
+                  mb: 0.5,
+                  fontSize: { xs: '1.5rem', sm: '1.75rem', md: '2rem' }
+                }}
+              >
                 {stats.admins}
               </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.9 }}>
+              <Typography variant="body2" sx={{ opacity: 0.9, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
                 Administrators
               </Typography>
             </CardContent>
@@ -239,21 +363,41 @@ const UserManagement = () => {
               position: 'absolute',
               top: 0,
               right: 0,
-              width: '100px',
-              height: '100px',
+              width: { xs: '80px', sm: '100px' },
+              height: { xs: '80px', sm: '100px' },
               background: 'rgba(255,255,255,0.1)',
               borderRadius: '50%',
               transform: 'translate(30px, -30px)',
             }
           }}>
-            <CardContent sx={{ textAlign: 'center', py: 3, position: 'relative', zIndex: 1 }}>
-              <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', mx: 'auto', mb: 1, width: 48, height: 48 }}>
-                <WalletIcon sx={{ fontSize: 24 }} />
+            <CardContent sx={{
+              textAlign: 'center',
+              py: { xs: 2, sm: 3 },
+              px: { xs: 2, sm: 3 },
+              position: 'relative',
+              zIndex: 1
+            }}>
+              <Avatar sx={{
+                bgcolor: 'rgba(255,255,255,0.2)',
+                mx: 'auto',
+                mb: 1,
+                width: { xs: 40, sm: 48 },
+                height: { xs: 40, sm: 48 }
+              }}>
+                <WalletIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
               </Avatar>
-              <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
+              <Typography
+                variant="h4"
+                sx={{
+                  fontWeight: 700,
+                  mb: 0.5,
+                  fontSize: { xs: '1.25rem', sm: '1.5rem', md: '1.75rem' },
+                  wordBreak: 'break-word'
+                }}
+              >
                 ₵{stats.totalBalance.toLocaleString()}
               </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.9 }}>
+              <Typography variant="body2" sx={{ opacity: 0.9, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
                 Total Balance
               </Typography>
             </CardContent>
@@ -263,7 +407,7 @@ const UserManagement = () => {
 
       {/* Search and Filters */}
       <Card sx={{ borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.08)', mb: 3 }}>
-        <CardContent sx={{ p: 3 }}>
+        <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
           <TextField
             fullWidth
             placeholder="Search users by email or role..."
@@ -277,7 +421,7 @@ const UserManagement = () => {
               ),
             }}
             sx={{
-              maxWidth: '400px',
+              maxWidth: { xs: '100%', sm: '400px' },
               '& .MuiOutlinedInput-root': {
                 borderRadius: 2,
                 backgroundColor: 'rgba(102, 126, 234, 0.04)',
@@ -292,105 +436,385 @@ const UserManagement = () => {
           />
         </CardContent>
       </Card>
-      {/* Users Table */}
+      {/* Users List - Mobile Cards / Desktop Table */}
       <Card sx={{ borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
         <CardContent sx={{ p: 0 }}>
-          <TableContainer sx={{ overflowX: 'auto' }}>
-            <Table sx={{ minWidth: 600 }}>
-              <TableHead sx={{
-                background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
-                '& .MuiTableCell-head': {
-                  fontWeight: 600,
-                  fontSize: '0.875rem',
-                  color: 'text.primary',
-                  borderBottom: 'none',
-                  py: 2
-                }
-              }}>
-                <TableRow>
-                  <TableCell>User</TableCell>
-                  <TableCell align="right">Balance</TableCell>
-                  <TableCell align="center">Role</TableCell>
-                  <TableCell align="center">Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {filteredUsers.map((user, index) => (
-                  <TableRow
-                    key={user._id}
-                    sx={{
-                      '&:hover': { backgroundColor: 'rgba(102, 126, 234, 0.04)' },
-                      '&:nth-of-type(even)': { backgroundColor: 'rgba(0,0,0,0.02)' },
-                      transition: 'background-color 0.2s ease'
-                    }}
+          {isMobile ? (
+            // Mobile Card View
+            <Box sx={{ p: { xs: 2, sm: 3 } }}>
+              {filteredUsers.length === 0 ? (
+                <Box sx={{ textAlign: 'center', py: { xs: 6, sm: 8 } }}>
+                  <PeopleIcon sx={{ fontSize: { xs: 48, sm: 64 }, color: 'text.secondary', mb: 2 }} />
+                  <Typography
+                    variant="h6"
+                    color="text.secondary"
+                    sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}
                   >
-                    <TableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <Avatar sx={{
-                          bgcolor: 'primary.main',
-                          width: 40,
-                          height: 40
-                        }}>
-                          {user.email.charAt(0).toUpperCase()}
-                        </Avatar>
-                        <Box>
-                          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                            {user.email}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            ID: {user._id.slice(-8)}
-                          </Typography>
+                    {searchTerm ? 'No users found matching your search' : 'No users registered yet'}
+                  </Typography>
+                </Box>
+              ) : (
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {filteredUsers.map((user, index) => (
+                    <Card key={user._id} sx={{ boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+                      <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                          <Avatar sx={{
+                            bgcolor: 'primary.main',
+                            width: { xs: 40, sm: 48 },
+                            height: { xs: 40, sm: 48 },
+                            mr: 2
+                          }}>
+                            {user.email.charAt(0).toUpperCase()}
+                          </Avatar>
+                          <Box sx={{ flex: 1, minWidth: 0 }}>
+                            <Typography
+                              variant="subtitle1"
+                              sx={{
+                                fontWeight: 600,
+                                fontSize: { xs: '0.875rem', sm: '1rem' },
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap'
+                              }}
+                            >
+                              {user.email}
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                              sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}
+                            >
+                              ID: {user._id.slice(-8)}
+                            </Typography>
+                          </Box>
                         </Box>
-                      </Box>
-                    </TableCell>
-                    <TableCell align="right">
-                      <Typography variant="h6" sx={{ fontWeight: 600, color: 'success.main' }}>
-                        ₵{user.walletBalance.toLocaleString()}
-                      </Typography>
-                    </TableCell>
-                    <TableCell align="center">
-                      <Chip
-                        icon={getRoleIcon(user.role)}
-                        label={user.role}
-                        color={getRoleColor(user.role)}
-                        size="small"
+
+                        <Grid container spacing={1} sx={{ mb: 2 }}>
+                          <Grid item xs={6}>
+                            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                              Balance
+                            </Typography>
+                            <Typography
+                              variant="h6"
+                              sx={{
+                                fontWeight: 600,
+                                color: 'success.main',
+                                fontSize: { xs: '1rem', sm: '1.1rem' }
+                              }}
+                            >
+                              ₵{user.walletBalance.toLocaleString()}
+                            </Typography>
+                          </Grid>
+                          <Grid item xs={6}>
+                            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                              Role
+                            </Typography>
+                            <Chip
+                              icon={getRoleIcon(user.role)}
+                              label={user.role}
+                              color={getRoleColor(user.role)}
+                              size="small"
+                              sx={{
+                                fontWeight: 600,
+                                textTransform: 'capitalize',
+                                fontSize: '0.7rem',
+                                height: '24px'
+                              }}
+                            />
+                          </Grid>
+                        </Grid>
+
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <Chip
+                            icon={user.suspended ? <BlockIcon /> : <CheckCircleIcon />}
+                            label={user.suspended ? 'Suspended' : 'Active'}
+                            color={user.suspended ? 'error' : 'success'}
+                            size="small"
+                            sx={{
+                              fontWeight: 600,
+                              fontSize: '0.7rem',
+                              height: '24px'
+                            }}
+                          />
+
+                          <Box sx={{ display: 'flex', gap: 1 }}>
+                            <Tooltip title="View Details">
+                              <IconButton
+                                onClick={() => handleViewDetails(user._id)}
+                                sx={{
+                                  color: 'primary.main',
+                                  '&:hover': {
+                                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                                  },
+                                  width: 32,
+                                  height: 32
+                                }}
+                              >
+                                <VisibilityIcon sx={{ fontSize: '1rem' }} />
+                              </IconButton>
+                            </Tooltip>
+
+                            {user.role !== 'admin' && (
+                              <>
+                                <Tooltip title={user.suspended ? 'Unsuspend User' : 'Suspend User'}>
+                                  <IconButton
+                                    onClick={() => handleToggleSuspension(user._id, user.email, user.suspended)}
+                                    sx={{
+                                      color: user.suspended ? 'success.main' : 'warning.main',
+                                      '&:hover': {
+                                        backgroundColor: user.suspended
+                                          ? 'rgba(76, 175, 80, 0.1)'
+                                          : 'rgba(255, 152, 0, 0.1)',
+                                      },
+                                      width: 32,
+                                      height: 32
+                                    }}
+                                  >
+                                    {user.suspended ? (
+                                      <ActiveIcon sx={{ fontSize: '1rem' }} />
+                                    ) : (
+                                      <BlockIcon sx={{ fontSize: '1rem' }} />
+                                    )}
+                                  </IconButton>
+                                </Tooltip>
+
+                                <Tooltip title="Delete User">
+                                  <IconButton
+                                    onClick={() => handleDeleteUser(user._id, user.email)}
+                                    sx={{
+                                      color: 'error.main',
+                                      '&:hover': {
+                                        backgroundColor: 'rgba(244, 67, 54, 0.1)',
+                                      },
+                                      width: 32,
+                                      height: 32
+                                    }}
+                                  >
+                                    <DeleteIcon sx={{ fontSize: '1rem' }} />
+                                  </IconButton>
+                                </Tooltip>
+                              </>
+                            )}
+                          </Box>
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </Box>
+              )}
+            </Box>
+          ) : (
+            // Desktop Table View
+            <>
+              <TableContainer sx={{ overflowX: 'auto' }}>
+                <Table sx={{ minWidth: { xs: 500, sm: 600 } }}>
+                  <TableHead sx={{
+                    background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
+                    '& .MuiTableCell-head': {
+                      fontWeight: 600,
+                      fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                      color: 'text.primary',
+                      borderBottom: 'none',
+                      py: { xs: 1.5, sm: 2 },
+                      px: { xs: 1, sm: 2 }
+                    }
+                  }}>
+                    <TableRow>
+                      <TableCell>User</TableCell>
+                      <TableCell align="right">Balance</TableCell>
+                      <TableCell align="center">Role</TableCell>
+                      <TableCell align="center">Status</TableCell>
+                      <TableCell align="center">Actions</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {filteredUsers.map((user, index) => (
+                      <TableRow
+                        key={user._id}
                         sx={{
-                          fontWeight: 600,
-                          textTransform: 'capitalize',
-                          minWidth: '80px'
+                          '&:hover': { backgroundColor: 'rgba(102, 126, 234, 0.04)' },
+                          '&:nth-of-type(even)': { backgroundColor: 'rgba(0,0,0,0.02)' },
+                          transition: 'background-color 0.2s ease'
                         }}
-                      />
-                    </TableCell>
-                    <TableCell align="center">
-                      <Tooltip title="View Details">
-                        <IconButton
-                          onClick={() => handleViewDetails(user._id)}
+                      >
+                        <TableCell sx={{ py: { xs: 1.5, sm: 2 }, px: { xs: 1, sm: 2 } }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 } }}>
+                            <Avatar sx={{
+                              bgcolor: 'primary.main',
+                              width: { xs: 32, sm: 40 },
+                              height: { xs: 32, sm: 40 },
+                              fontSize: { xs: '0.875rem', sm: '1rem' }
+                            }}>
+                              {user.email.charAt(0).toUpperCase()}
+                            </Avatar>
+                            <Box sx={{ minWidth: 0, flex: 1 }}>
+                              <Typography
+                                variant="subtitle2"
+                                sx={{
+                                  fontWeight: 600,
+                                  fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
+                                  maxWidth: { xs: '120px', sm: '200px' }
+                                }}
+                              >
+                                {user.email}
+                              </Typography>
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                                sx={{ fontSize: { xs: '0.625rem', sm: '0.75rem' } }}
+                              >
+                                ID: {user._id.slice(-8)}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        </TableCell>
+                        <TableCell
+                          align="right"
                           sx={{
-                            color: 'primary.main',
-                            '&:hover': {
-                              backgroundColor: 'rgba(102, 126, 234, 0.1)',
-                              transform: 'scale(1.1)'
-                            },
-                            transition: 'all 0.2s ease'
+                            py: { xs: 1.5, sm: 2 },
+                            px: { xs: 1, sm: 2 },
+                            fontSize: { xs: '0.75rem', sm: '0.875rem' }
                           }}
                         >
-                          <VisibilityIcon />
-                        </IconButton>
-                      </Tooltip>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                          <Typography
+                            variant="h6"
+                            sx={{
+                              fontWeight: 600,
+                              color: 'success.main',
+                              fontSize: { xs: '0.875rem', sm: '1rem' }
+                            }}
+                          >
+                            ₵{user.walletBalance.toLocaleString()}
+                          </Typography>
+                        </TableCell>
+                        <TableCell
+                          align="center"
+                          sx={{ py: { xs: 1.5, sm: 2 }, px: { xs: 1, sm: 2 } }}
+                        >
+                          <Chip
+                            icon={getRoleIcon(user.role)}
+                            label={user.role}
+                            color={getRoleColor(user.role)}
+                            size="small"
+                            sx={{
+                              fontWeight: 600,
+                              textTransform: 'capitalize',
+                              minWidth: { xs: '70px', sm: '80px' },
+                              fontSize: { xs: '0.625rem', sm: '0.75rem' },
+                              height: { xs: '24px', sm: '28px' }
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell
+                          align="center"
+                          sx={{ py: { xs: 1.5, sm: 2 }, px: { xs: 1, sm: 2 } }}
+                        >
+                          <Chip
+                            icon={user.suspended ? <BlockIcon /> : <CheckCircleIcon />}
+                            label={user.suspended ? 'Suspended' : 'Active'}
+                            color={user.suspended ? 'error' : 'success'}
+                            size="small"
+                            sx={{
+                              fontWeight: 600,
+                              minWidth: { xs: '80px', sm: '90px' },
+                              fontSize: { xs: '0.625rem', sm: '0.75rem' },
+                              height: { xs: '24px', sm: '28px' }
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell
+                          align="center"
+                          sx={{ py: { xs: 1.5, sm: 2 }, px: { xs: 1, sm: 2 } }}
+                        >
+                          <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', flexWrap: 'wrap' }}>
+                            <Tooltip title="View Details">
+                              <IconButton
+                                onClick={() => handleViewDetails(user._id)}
+                                sx={{
+                                  color: 'primary.main',
+                                  '&:hover': {
+                                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                                    transform: 'scale(1.1)'
+                                  },
+                                  transition: 'all 0.2s ease',
+                                  width: { xs: 32, sm: 36 },
+                                  height: { xs: 32, sm: 36 }
+                                }}
+                              >
+                                <VisibilityIcon sx={{ fontSize: { xs: '1rem', sm: '1.1rem' } }} />
+                              </IconButton>
+                            </Tooltip>
 
-          {filteredUsers.length === 0 && (
-            <Box sx={{ textAlign: 'center', py: 8 }}>
-              <PeopleIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-              <Typography variant="h6" color="text.secondary">
-                {searchTerm ? 'No users found matching your search' : 'No users registered yet'}
-              </Typography>
-            </Box>
+                            {user.role !== 'admin' && (
+                              <>
+                                <Tooltip title={user.suspended ? 'Unsuspend User' : 'Suspend User'}>
+                                  <IconButton
+                                    onClick={() => handleToggleSuspension(user._id, user.email, user.suspended)}
+                                    sx={{
+                                      color: user.suspended ? 'success.main' : 'warning.main',
+                                      '&:hover': {
+                                        backgroundColor: user.suspended
+                                          ? 'rgba(76, 175, 80, 0.1)'
+                                          : 'rgba(255, 152, 0, 0.1)',
+                                        transform: 'scale(1.1)'
+                                      },
+                                      transition: 'all 0.2s ease',
+                                      width: { xs: 32, sm: 36 },
+                                      height: { xs: 32, sm: 36 }
+                                    }}
+                                  >
+                                    {user.suspended ? (
+                                      <ActiveIcon sx={{ fontSize: { xs: '1rem', sm: '1.1rem' } }} />
+                                    ) : (
+                                      <BlockIcon sx={{ fontSize: { xs: '1rem', sm: '1.1rem' } }} />
+                                    )}
+                                  </IconButton>
+                                </Tooltip>
+
+                                <Tooltip title="Delete User">
+                                  <IconButton
+                                    onClick={() => handleDeleteUser(user._id, user.email)}
+                                    sx={{
+                                      color: 'error.main',
+                                      '&:hover': {
+                                        backgroundColor: 'rgba(244, 67, 54, 0.1)',
+                                        transform: 'scale(1.1)'
+                                      },
+                                      transition: 'all 0.2s ease',
+                                      width: { xs: 32, sm: 36 },
+                                      height: { xs: 32, sm: 36 }
+                                    }}
+                                  >
+                                    <DeleteIcon sx={{ fontSize: { xs: '1rem', sm: '1.1rem' } }} />
+                                  </IconButton>
+                                </Tooltip>
+                              </>
+                            )}
+                          </Box>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+
+              {filteredUsers.length === 0 && (
+                <Box sx={{ textAlign: 'center', py: { xs: 6, sm: 8 }, px: { xs: 2, sm: 3 } }}>
+                  <PeopleIcon sx={{ fontSize: { xs: 48, sm: 64 }, color: 'text.secondary', mb: 2 }} />
+                  <Typography
+                    variant="h6"
+                    color="text.secondary"
+                    sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}
+                  >
+                    {searchTerm ? 'No users found matching your search' : 'No users registered yet'}
+                  </Typography>
+                </Box>
+              )}
+            </>
           )}
         </CardContent>
       </Card>
@@ -401,10 +825,12 @@ const UserManagement = () => {
         onClose={handleCloseDetails}
         maxWidth="lg"
         fullWidth
+        fullScreen={{ xs: true, sm: false }}
         PaperProps={{
           sx: {
-            borderRadius: 3,
+            borderRadius: { xs: 0, sm: 3 },
             boxShadow: '0 25px 50px rgba(0,0,0,0.25)',
+            m: { xs: 0, sm: 2 }
           }
         }}
       >
@@ -414,22 +840,38 @@ const UserManagement = () => {
           display: 'flex',
           alignItems: 'center',
           gap: 2,
-          py: 3
+          py: { xs: 2, sm: 3 },
+          px: { xs: 2, sm: 3 }
         }}>
-          <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', width: 48, height: 48 }}>
+          <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', width: { xs: 40, sm: 48 }, height: { xs: 40, sm: 48 } }}>
             <PersonIcon />
           </Avatar>
-          <Box>
-            <Typography variant="h5" sx={{ fontWeight: 600 }}>
+          <Box sx={{ minWidth: 0, flex: 1 }}>
+            <Typography
+              variant="h5"
+              sx={{
+                fontWeight: 600,
+                fontSize: { xs: '1.25rem', sm: '1.5rem' },
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap'
+              }}
+            >
               User Details
             </Typography>
-            <Typography variant="body2" sx={{ opacity: 0.9 }}>
+            <Typography
+              variant="body2"
+              sx={{
+                opacity: 0.9,
+                fontSize: { xs: '0.75rem', sm: '0.875rem' }
+              }}
+            >
               Comprehensive user information and activity
             </Typography>
           </Box>
         </DialogTitle>
 
-        <DialogContent sx={{ p: 0 }}>
+        <DialogContent sx={{ p: 0, flex: 1, overflow: 'auto' }}>
           {loading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
               <CircularProgress />
@@ -437,22 +879,37 @@ const UserManagement = () => {
           ) : userDetails && (
             <Box>
               {/* User Info Section */}
-              <Box sx={{ p: 3, borderBottom: '1px solid rgba(0,0,0,0.08)' }}>
-                <Typography variant="h6" sx={{ mb: 3, fontWeight: 600, color: 'primary.main' }}>
+              <Box sx={{ p: { xs: 2, sm: 3 }, borderBottom: '1px solid rgba(0,0,0,0.08)' }}>
+                <Typography
+                  variant="h6"
+                  sx={{
+                    mb: 3,
+                    fontWeight: 600,
+                    color: 'primary.main',
+                    fontSize: { xs: '1.1rem', sm: '1.25rem' }
+                  }}
+                >
                   <PersonIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
                   User Information
                 </Typography>
-                <Grid container spacing={3}>
-                  <Grid item xs={12} md={6}>
+                <Grid container spacing={{ xs: 2, sm: 3 }}>
+                  <Grid item xs={12} sm={6}>
                     <Card sx={{ borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-                      <CardContent sx={{ p: 2 }}>
+                      <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
                           <Avatar sx={{ bgcolor: 'primary.main' }}>
                             <EmailIcon />
                           </Avatar>
-                          <Box>
+                          <Box sx={{ minWidth: 0, flex: 1 }}>
                             <Typography variant="body2" color="text.secondary">Email Address</Typography>
-                            <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                            <Typography
+                              variant="body1"
+                              sx={{
+                                fontWeight: 600,
+                                fontSize: { xs: '0.875rem', sm: '1rem' },
+                                wordBreak: 'break-word'
+                              }}
+                            >
                               {userDetails.user.email}
                             </Typography>
                           </Box>
@@ -460,16 +917,23 @@ const UserManagement = () => {
                       </CardContent>
                     </Card>
                   </Grid>
-                  <Grid item xs={12} md={6}>
+                  <Grid item xs={12} sm={6}>
                     <Card sx={{ borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-                      <CardContent sx={{ p: 2 }}>
+                      <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
                           <Avatar sx={{ bgcolor: 'success.main' }}>
                             <WalletIcon />
                           </Avatar>
                           <Box>
                             <Typography variant="body2" color="text.secondary">Wallet Balance</Typography>
-                            <Typography variant="h6" sx={{ fontWeight: 700, color: 'success.main' }}>
+                            <Typography
+                              variant="h6"
+                              sx={{
+                                fontWeight: 700,
+                                color: 'success.main',
+                                fontSize: { xs: '1.25rem', sm: '1.5rem' }
+                              }}
+                            >
                               ₵{userDetails.user.walletBalance.toLocaleString()}
                             </Typography>
                           </Box>
@@ -481,119 +945,329 @@ const UserManagement = () => {
               </Box>
 
               {/* Transactions Section */}
-              <Box sx={{ p: 3, borderBottom: '1px solid rgba(0,0,0,0.08)' }}>
-                <Typography variant="h6" sx={{ mb: 3, fontWeight: 600, color: 'primary.main' }}>
+              <Box sx={{ p: { xs: 2, sm: 3 }, borderBottom: '1px solid rgba(0,0,0,0.08)' }}>
+                <Typography
+                  variant="h6"
+                  sx={{
+                    mb: 3,
+                    fontWeight: 600,
+                    color: 'primary.main',
+                    fontSize: { xs: '1.1rem', sm: '1.25rem' }
+                  }}
+                >
                   <ReceiptIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
                   Transaction History
                 </Typography>
                 {userDetails.transactions.length === 0 ? (
                   <Box sx={{ textAlign: 'center', py: 4 }}>
-                    <ReceiptIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
+                    <ReceiptIcon sx={{ fontSize: { xs: 36, sm: 48 }, color: 'text.secondary', mb: 2 }} />
                     <Typography variant="body1" color="text.secondary">
                       No transactions found
                     </Typography>
                   </Box>
                 ) : (
-                  <List sx={{ maxHeight: '300px', overflow: 'auto' }}>
+                  <Box sx={{ maxHeight: { xs: '300px', sm: '400px' }, overflow: 'auto' }}>
                     {userDetails.transactions.map((tx, index) => (
-                      <React.Fragment key={tx._id}>
-                        <ListItem sx={{ px: 0 }}>
-                          <ListItemText
-                            primary={
-                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                                  {tx.type.charAt(0).toUpperCase() + tx.type.slice(1)}
-                                </Typography>
+                      <Card key={tx._id} sx={{
+                        mb: 2,
+                        borderRadius: 2,
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                        border: '1px solid rgba(0,0,0,0.06)'
+                      }}>
+                        <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                          <Grid container spacing={{ xs: 1, sm: 2 }} alignItems="center">
+                            <Grid item xs={12} sm={6} md={4}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1.5, sm: 2 } }}>
+                                <Avatar sx={{
+                                  bgcolor: tx.type === 'deposit' ? 'success.main' : tx.type === 'purchase' ? 'primary.main' : 'error.main',
+                                  width: { xs: 36, sm: 40 },
+                                  height: { xs: 36, sm: 40 }
+                                }}>
+                                  <CreditCardIcon sx={{ fontSize: { xs: 16, sm: 20 } }} />
+                                </Avatar>
+                                <Box sx={{ minWidth: 0, flex: 1 }}>
+                                  <Typography
+                                    variant="subtitle1"
+                                    sx={{
+                                      fontWeight: 600,
+                                      fontSize: { xs: '0.875rem', sm: '1rem' }
+                                    }}
+                                  >
+                                    {tx.type.charAt(0).toUpperCase() + tx.type.slice(1)}
+                                  </Typography>
+                                  <Typography
+                                    variant="body2"
+                                    color="text.secondary"
+                                    sx={{
+                                      fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                                      wordBreak: 'break-word'
+                                    }}
+                                  >
+                                    Ref: {tx.reference}
+                                  </Typography>
+                                </Box>
+                              </Box>
+                            </Grid>
+                            <Grid item xs={12} sm={6} md={3}>
+                              <Typography
+                                variant="h6"
+                                sx={{
+                                  fontWeight: 700,
+                                  color: tx.type === 'deposit' ? 'success.main' : 'error.main',
+                                  fontSize: { xs: '1rem', sm: '1.25rem' }
+                                }}
+                              >
+                                {tx.type === 'deposit' ? '+' : '-'}₵{tx.amount.toLocaleString()}
+                              </Typography>
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                                sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
+                              >
+                                {tx.description}
+                              </Typography>
+                            </Grid>
+                            <Grid item xs={12} sm={6} md={3}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: { xs: 1, sm: 0 } }}>
                                 <Chip
-                                  label={`₵${tx.amount.toLocaleString()}`}
-                                  color={tx.type === 'credit' ? 'success' : 'error'}
+                                  label={tx.status.charAt(0).toUpperCase() + tx.status.slice(1)}
+                                  color={
+                                    tx.status === 'completed' ? 'success' :
+                                    tx.status === 'pending' ? 'warning' : 'error'
+                                  }
                                   size="small"
-                                  sx={{ fontWeight: 600 }}
+                                  icon={
+                                    tx.status === 'completed' ? <CheckCircleIcon /> :
+                                    tx.status === 'pending' ? <ScheduleIcon /> : <CloseIcon />
+                                  }
+                                  sx={{
+                                    fontWeight: 600,
+                                    fontSize: { xs: '0.625rem', sm: '0.75rem' },
+                                    height: { xs: '24px', sm: '28px' }
+                                  }}
                                 />
                               </Box>
-                            }
-                            secondary={
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-                                <CalendarIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-                                <Typography variant="caption" color="text.secondary">
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <CalendarIcon sx={{ fontSize: { xs: 14, sm: 16 }, color: 'text.secondary' }} />
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                  sx={{ fontSize: { xs: '0.625rem', sm: '0.75rem' } }}
+                                >
                                   {new Date(tx.createdAt).toLocaleString()}
                                 </Typography>
                               </Box>
-                            }
-                          />
-                        </ListItem>
-                        {index < userDetails.transactions.length - 1 && <Divider />}
-                      </React.Fragment>
+                            </Grid>
+                            <Grid item xs={12} sm={6} md={2}>
+                              {tx.status === 'pending' && tx.type === 'deposit' && (
+                                <Button
+                                  variant="contained"
+                                  color="success"
+                                  size="small"
+                                  startIcon={<CheckIcon />}
+                                  onClick={() => handleApproveTransaction(tx._id)}
+                                  sx={{
+                                    borderRadius: 2,
+                                    textTransform: 'none',
+                                    fontWeight: 600,
+                                    minWidth: { xs: '80px', sm: '100px' },
+                                    fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                                    height: { xs: '32px', sm: '36px' }
+                                  }}
+                                >
+                                  Approve
+                                </Button>
+                              )}
+                            </Grid>
+                          </Grid>
+                        </CardContent>
+                      </Card>
                     ))}
-                  </List>
+                  </Box>
                 )}
               </Box>
 
               {/* Orders Section */}
-              <Box sx={{ p: 3 }}>
-                <Typography variant="h6" sx={{ mb: 3, fontWeight: 600, color: 'primary.main' }}>
+              <Box sx={{ p: { xs: 2, sm: 3 } }}>
+                <Typography
+                  variant="h6"
+                  sx={{
+                    mb: 3,
+                    fontWeight: 600,
+                    color: 'primary.main',
+                    fontSize: { xs: '1.1rem', sm: '1.25rem' }
+                  }}
+                >
                   <ShoppingCartIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
                   Order History
                 </Typography>
                 {userDetails.orders.length === 0 ? (
                   <Box sx={{ textAlign: 'center', py: 4 }}>
-                    <ShoppingCartIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
+                    <ShoppingCartIcon sx={{ fontSize: { xs: 36, sm: 48 }, color: 'text.secondary', mb: 2 }} />
                     <Typography variant="body1" color="text.secondary">
                       No orders found
                     </Typography>
                   </Box>
                 ) : (
-                  <List sx={{ maxHeight: '300px', overflow: 'auto' }}>
+                  <Box sx={{ maxHeight: { xs: '300px', sm: '400px' }, overflow: 'auto' }}>
                     {userDetails.orders.map((order, index) => (
-                      <React.Fragment key={order._id}>
-                        <ListItem sx={{ px: 0 }}>
-                          <ListItemText
-                            primary={
-                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                                  {order.quantity} IP Addresses
-                                </Typography>
-                                <Chip
-                                  label={`₵${order.totalPrice.toLocaleString()}`}
-                                  color="primary"
-                                  size="small"
-                                  sx={{ fontWeight: 600 }}
-                                />
+                      <Card key={order._id} sx={{
+                        mb: 2,
+                        borderRadius: 2,
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                        border: '1px solid rgba(0,0,0,0.06)'
+                      }}>
+                        <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                          <Grid container spacing={{ xs: 1.5, sm: 2 }}>
+                            <Grid item xs={12} sm={6} md={3}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1.5, sm: 2 } }}>
+                                <Avatar sx={{ bgcolor: 'primary.main', width: { xs: 36, sm: 40 }, height: { xs: 36, sm: 40 } }}>
+                                  <NumbersIcon sx={{ fontSize: { xs: 16, sm: 20 } }} />
+                                </Avatar>
+                                <Box sx={{ minWidth: 0, flex: 1 }}>
+                                  <Typography variant="body2" color="text.secondary">Order ID</Typography>
+                                  <Typography
+                                    variant="subtitle2"
+                                    sx={{
+                                      fontWeight: 600,
+                                      fontFamily: 'monospace',
+                                      fontSize: { xs: '0.75rem', sm: '0.875rem' }
+                                    }}
+                                  >
+                                    {order._id.slice(-8).toUpperCase()}
+                                  </Typography>
+                                </Box>
                               </Box>
-                            }
-                            secondary={
-                              <Box sx={{ mt: 1 }}>
-                                <Typography variant="body2" color="text.secondary">
-                                  Country: {order.country || 'Any'} • Status: {order.status}
+                            </Grid>
+                            <Grid item xs={12} sm={6} md={3}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1.5, sm: 2 } }}>
+                                <Avatar sx={{ bgcolor: 'info.main', width: { xs: 36, sm: 40 }, height: { xs: 36, sm: 40 } }}>
+                                  <VpnKeyIcon sx={{ fontSize: { xs: 16, sm: 20 } }} />
+                                </Avatar>
+                                <Box sx={{ minWidth: 0, flex: 1 }}>
+                                  <Typography variant="body2" color="text.secondary">Credentials</Typography>
+                                  <Typography
+                                    variant="body2"
+                                    sx={{
+                                      fontFamily: 'monospace',
+                                      fontWeight: 500,
+                                      fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                                      wordBreak: 'break-word'
+                                    }}
+                                  >
+                                    {order.username && order.password ? `${order.username}:${order.password}` : 'Not assigned'}
+                                  </Typography>
+                                </Box>
+                              </Box>
+                            </Grid>
+                            <Grid item xs={12} sm={6} md={3}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1.5, sm: 2 } }}>
+                                <Avatar sx={{ bgcolor: 'success.main', width: { xs: 36, sm: 40 }, height: { xs: 36, sm: 40 } }}>
+                                  <ShoppingCartIcon sx={{ fontSize: { xs: 16, sm: 20 } }} />
+                                </Avatar>
+                                <Box>
+                                  <Typography variant="body2" color="text.secondary">Total IPs</Typography>
+                                  <Typography
+                                    variant="h6"
+                                    sx={{
+                                      fontWeight: 700,
+                                      color: 'success.main',
+                                      fontSize: { xs: '1.25rem', sm: '1.5rem' }
+                                    }}
+                                  >
+                                    {order.quantity}
+                                  </Typography>
+                                </Box>
+                              </Box>
+                            </Grid>
+                            <Grid item xs={12} sm={6} md={3}>
+                              <Box sx={{ textAlign: { xs: 'left', sm: 'right' } }}>
+                                <Typography variant="body2" color="text.secondary">Total Price</Typography>
+                                <Typography
+                                  variant="h6"
+                                  sx={{
+                                    fontWeight: 700,
+                                    color: 'primary.main',
+                                    fontSize: { xs: '1.1rem', sm: '1.25rem' }
+                                  }}
+                                >
+                                  ₵{order.totalPrice.toLocaleString()}
                                 </Typography>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-                                  <CalendarIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-                                  <Typography variant="caption" color="text.secondary">
+                                <Box sx={{ mt: 1 }}>
+                                  <Chip
+                                    label={order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                                    color={
+                                      order.status === 'completed' ? 'success' :
+                                      order.status === 'pending' ? 'warning' : 'error'
+                                    }
+                                    size="small"
+                                    sx={{
+                                      fontWeight: 600,
+                                      fontSize: { xs: '0.625rem', sm: '0.75rem' },
+                                      height: { xs: '24px', sm: '28px' }
+                                    }}
+                                  />
+                                </Box>
+                              </Box>
+                            </Grid>
+                            <Grid item xs={12}>
+                              <Divider sx={{ my: { xs: 1.5, sm: 2 } }} />
+                              <Box sx={{
+                                display: 'flex',
+                                flexDirection: { xs: 'column', sm: 'row' },
+                                justifyContent: 'space-between',
+                                alignItems: { xs: 'flex-start', sm: 'center' },
+                                gap: { xs: 1, sm: 0 }
+                              }}>
+                                <Box>
+                                  <Typography
+                                    variant="body2"
+                                    color="text.secondary"
+                                    sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
+                                  >
+                                    Country: {order.country || 'Any'} • Type: {order.proxyType}
+                                  </Typography>
+                                </Box>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  <CalendarIcon sx={{ fontSize: { xs: 14, sm: 16 }, color: 'text.secondary' }} />
+                                  <Typography
+                                    variant="caption"
+                                    color="text.secondary"
+                                    sx={{ fontSize: { xs: '0.625rem', sm: '0.75rem' } }}
+                                  >
                                     {new Date(order.createdAt).toLocaleString()}
                                   </Typography>
                                 </Box>
                               </Box>
-                            }
-                          />
-                        </ListItem>
-                        {index < userDetails.orders.length - 1 && <Divider />}
-                      </React.Fragment>
+                            </Grid>
+                          </Grid>
+                        </CardContent>
+                      </Card>
                     ))}
-                  </List>
+                  </Box>
                 )}
               </Box>
             </Box>
           )}
         </DialogContent>
 
-        <DialogActions sx={{ p: 3, pt: 2, borderTop: '1px solid rgba(0,0,0,0.08)' }}>
+        <DialogActions sx={{
+          p: { xs: 2, sm: 3 },
+          pt: { xs: 1.5, sm: 2 },
+          borderTop: '1px solid rgba(0,0,0,0.08)',
+          flexDirection: { xs: 'column', sm: 'row' },
+          gap: { xs: 1, sm: 0 }
+        }}>
           <Button
             onClick={handleCloseDetails}
             variant="outlined"
+            fullWidth={{ xs: true, sm: false }}
             sx={{
               borderRadius: 2,
               textTransform: 'none',
-              fontWeight: 500
+              fontWeight: 500,
+              order: { xs: 1, sm: 2 },
+              minHeight: { xs: '44px', sm: 'auto' }
             }}
           >
             Close

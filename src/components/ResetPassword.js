@@ -138,7 +138,7 @@ const ResetPassword = () => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        p: 2,
+        p: { xs: 1, sm: 2 },
         position: 'relative',
         '&::before': {
           content: '""',
@@ -156,30 +156,30 @@ const ResetPassword = () => {
         <Card
           elevation={24}
           sx={{
-            maxWidth: 450,
+            maxWidth: { xs: '100%', sm: 450 },
             width: '100%',
-            mx: 2,
-            borderRadius: 4,
+            mx: { xs: 1, sm: 2 },
+            borderRadius: { xs: 2, sm: 4 },
             backdropFilter: 'blur(20px)',
             background: 'rgba(255, 255, 255, 0.95)',
             border: '1px solid rgba(255, 255, 255, 0.2)',
             boxShadow: '0 25px 50px rgba(0, 0, 0, 0.15)',
           }}
         >
-          <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
+          <CardContent sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
             {/* Header */}
-            <Box sx={{ textAlign: 'center', mb: 3 }}>
+            <Box sx={{ textAlign: 'center', mb: { xs: 2, sm: 3 } }}>
               <Avatar
                 sx={{
-                  width: 80,
-                  height: 80,
+                  width: { xs: 60, sm: 80 },
+                  height: { xs: 60, sm: 80 },
                   mx: 'auto',
                   mb: 2,
                   background: 'linear-gradient(135deg, #1a237e 0%, #311b92 100%)',
                   boxShadow: '0 8px 25px rgba(26, 35, 126, 0.3)',
                 }}
               >
-                <AdminPanelSettings sx={{ fontSize: 40, color: 'white' }} />
+                <AdminPanelSettings sx={{ fontSize: { xs: 30, sm: 40 }, color: 'white' }} />
               </Avatar>
               <Typography
                 variant="h4"
@@ -191,11 +191,16 @@ const ResetPassword = () => {
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                   mb: 1,
+                  fontSize: { xs: '1.5rem', sm: '2rem', md: '2.125rem' }
                 }}
               >
                 Reset Admin Password
               </Typography>
-              <Typography variant="body1" color="text.secondary">
+              <Typography 
+                variant="body1" 
+                color="text.secondary"
+                sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}
+              >
                 Enter your new admin password below
               </Typography>
             </Box>
@@ -260,10 +265,16 @@ const ResetPassword = () => {
                         borderColor: theme.palette.primary.main,
                       },
                     },
+                    '& .MuiInputLabel-root': {
+                      fontSize: { xs: '0.875rem', sm: '1rem' }
+                    },
+                    '& .MuiOutlinedInput-input': {
+                      fontSize: { xs: '0.875rem', sm: '1rem' }
+                    }
                   }}
                   InputProps={{
                     startAdornment: (
-                      <Lock sx={{ color: 'action.active', mr: 1 }} />
+                      <Lock sx={{ color: 'action.active', mr: 1, fontSize: { xs: 18, sm: 20 } }} />
                     ),
                     endAdornment: (
                       <InputAdornment position="end">
@@ -271,6 +282,7 @@ const ResetPassword = () => {
                           aria-label="toggle password visibility"
                           onClick={togglePasswordVisibility}
                           edge="end"
+                          size="small"
                         >
                           {showPassword ? <VisibilityOff /> : <Visibility />}
                         </IconButton>
@@ -281,12 +293,12 @@ const ResetPassword = () => {
 
                 {/* Password Strength Indicator */}
                 {formData.password && (
-                  <Box sx={{ mb: 3 }}>
+                  <Box sx={{ mb: { xs: 2, sm: 3 } }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                      <Typography variant="body2" color="text.secondary">
+                      <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
                         Password Strength
                       </Typography>
-                      <Typography variant="body2" sx={{ color: getStrengthColor(), fontWeight: 600 }}>
+                      <Typography variant="body2" sx={{ color: getStrengthColor(), fontWeight: 600, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
                         {getStrengthText()}
                       </Typography>
                     </Box>
@@ -294,7 +306,7 @@ const ResetPassword = () => {
                       variant="determinate"
                       value={passwordStrength}
                       sx={{
-                        height: 8,
+                        height: { xs: 6, sm: 8 },
                         borderRadius: 4,
                         backgroundColor: 'rgba(0, 0, 0, 0.1)',
                         '& .MuiLinearProgress-bar': {
@@ -303,7 +315,7 @@ const ResetPassword = () => {
                         },
                       }}
                     />
-                    <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block', fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
                       Use at least 8 characters with uppercase, lowercase, and numbers
                     </Typography>
                   </Box>
@@ -318,7 +330,7 @@ const ResetPassword = () => {
                   onChange={handleInputChange('confirmPassword')}
                   required
                   sx={{
-                    mb: 3,
+                    mb: { xs: 2, sm: 3 },
                     '& .MuiOutlinedInput-root': {
                       borderRadius: 2,
                       '&:hover fieldset': {
@@ -328,10 +340,16 @@ const ResetPassword = () => {
                         borderColor: theme.palette.primary.main,
                       },
                     },
+                    '& .MuiInputLabel-root': {
+                      fontSize: { xs: '0.875rem', sm: '1rem' }
+                    },
+                    '& .MuiOutlinedInput-input': {
+                      fontSize: { xs: '0.875rem', sm: '1rem' }
+                    }
                   }}
                   InputProps={{
                     startAdornment: (
-                      <Security sx={{ color: 'action.active', mr: 1 }} />
+                      <Security sx={{ color: 'action.active', mr: 1, fontSize: { xs: 18, sm: 20 } }} />
                     ),
                     endAdornment: (
                       <InputAdornment position="end">
@@ -339,6 +357,7 @@ const ResetPassword = () => {
                           aria-label="toggle confirm password visibility"
                           onClick={toggleConfirmPasswordVisibility}
                           edge="end"
+                          size="small"
                         >
                           {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
                         </IconButton>
@@ -354,10 +373,10 @@ const ResetPassword = () => {
                   disabled={loading}
                   startIcon={loading ? null : <LockReset />}
                   sx={{
-                    py: 1.5,
+                    py: { xs: 1.25, sm: 1.5 },
                     borderRadius: 2,
                     fontWeight: 600,
-                    fontSize: '1rem',
+                    fontSize: { xs: '0.875rem', sm: '1rem' },
                     textTransform: 'none',
                     background: 'linear-gradient(135deg, #1a237e 0%, #311b92 100%)',
                     boxShadow: '0 4px 15px rgba(26, 35, 126, 0.4)',
