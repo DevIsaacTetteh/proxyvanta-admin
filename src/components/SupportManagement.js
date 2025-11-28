@@ -50,7 +50,7 @@ const SupportManagement = () => {
   const [success, setSuccess] = useState('');
 
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const loadTickets = useCallback(async () => {
     try {

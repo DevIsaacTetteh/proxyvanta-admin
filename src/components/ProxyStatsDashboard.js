@@ -20,7 +20,7 @@ const ProxyStatsDashboard = () => {
   const [refreshing, setRefreshing] = useState(false);
 
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   // IP tiers from pricing config
   const ipTiers = [5, 10, 25, 50, 100, 200, 300, 400, 800, 1000, 1200, 1600, 2200, 3000];

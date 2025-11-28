@@ -52,7 +52,7 @@ import api from '../services/api';
 
 const NewsManagement = () => {
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
 
   const [news, setNews] = useState([]);

@@ -39,7 +39,7 @@ const UserManagement = () => {
   const [stats, setStats] = useState({ total: 0, active: 0, admins: 0, totalBalance: 0 });
 
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const fetchUsers = useCallback(async () => {
     try {

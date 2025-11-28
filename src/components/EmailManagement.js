@@ -75,19 +75,27 @@ const EmailManagement = () => {
 
       const recipient = selectedUser ? users.find(u => u._id === selectedUser)?.email : individualEmail;
 
-      await api.post('/admin/send-email', {
+      console.log('Sending email to:', recipient);
+      console.log('Request data:', { email: recipient, to: recipient, subject: individualSubject, message: individualMessage });
+
+      const response = await api.post('/admin/send-email', {
+        email: recipient,
         to: recipient,
         subject: individualSubject,
         message: individualMessage
       });
 
+      console.log('Email response:', response.data);
       setSuccess('Email sent successfully!');
       setIndividualEmail('');
       setSelectedUser('');
       setIndividualSubject('');
       setIndividualMessage('');
     } catch (err) {
-      setError('Failed to send email');
+      console.error('Email send error:', err);
+      console.error('Error response:', err.response?.data);
+      const errorMessage = err.response?.data?.message || err.response?.data?.error || err.message || 'Failed to send email';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -108,17 +116,24 @@ const EmailManagement = () => {
       setError('');
       setSuccess('');
 
-      await api.post('/admin/broadcast-email', {
+      console.log('Broadcasting email to all users');
+      console.log('Request data:', { subject: broadcastSubject, message: broadcastMessage });
+
+      const response = await api.post('/admin/broadcast-email', {
         subject: broadcastSubject,
         message: broadcastMessage
       });
 
+      console.log('Broadcast response:', response.data);
       setSuccess(`Broadcast email sent to ${users.length} users successfully!`);
       setBroadcastSubject('');
       setBroadcastMessage('');
       setBroadcastConfirm(false);
     } catch (err) {
-      setError('Failed to send broadcast email');
+      console.error('Broadcast email error:', err);
+      console.error('Error response:', err.response?.data);
+      const errorMessage = err.response?.data?.message || err.response?.data?.error || err.message || 'Failed to send broadcast email';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

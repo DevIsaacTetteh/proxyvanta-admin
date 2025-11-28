@@ -266,7 +266,7 @@ const Layout = ({ children }) => {
   const { logout, user } = useAuth();
   const [drawerOpen, setDrawerOpen] = React.useState(false);
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const menuItems = [
     { text: 'Dashboard', path: '/dashboard', icon: <DashboardIcon /> },

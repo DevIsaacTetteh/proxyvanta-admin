@@ -33,7 +33,7 @@ const OrderManagement = () => {
   const [stats, setStats] = useState({ total: 0, completed: 0, pending: 0, totalRevenue: 0 });
 
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const fetchOrders = useCallback(async () => {
     try {

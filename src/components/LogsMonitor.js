@@ -9,7 +9,7 @@ const LogsMonitor = () => {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   useEffect(() => {
     fetchLogs();

@@ -19,7 +19,7 @@ import api from '../services/api';
 
 const ProxyPoolManagement = () => {
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [proxies, setProxies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
