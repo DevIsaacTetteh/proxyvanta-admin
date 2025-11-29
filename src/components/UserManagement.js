@@ -3,7 +3,8 @@ import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Typography, Box, Button, Dialog, DialogTitle, DialogContent,
   DialogActions, Card, CardContent, Avatar, Chip, TextField, InputAdornment,
-  Grid, CircularProgress, IconButton, Tooltip, Divider, useMediaQuery, useTheme
+  Grid, CircularProgress, IconButton, Tooltip, Divider, useMediaQuery, useTheme,
+  Tabs, Tab, Alert, Snackbar
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -25,7 +26,9 @@ import {
   Numbers as NumbersIcon,
   Delete as DeleteIcon,
   Block as BlockIcon,
-  CheckCircle as ActiveIcon
+  CheckCircle as ActiveIcon,
+  HowToReg as HowToRegIcon,
+  Pending as PendingIcon
 } from '@mui/icons-material';
 import api from '../services/api';
 
@@ -37,6 +40,11 @@ const UserManagement = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [stats, setStats] = useState({ total: 0, active: 0, admins: 0, totalBalance: 0 });
+  const [currentTab, setCurrentTab] = useState(0);
+  const [admins, setAdmins] = useState([]);
+  const [adminStats, setAdminStats] = useState({ total: 0, pending: 0, approved: 0 });
+  const [isDefaultAdmin, setIsDefaultAdmin] = useState(false);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -53,9 +61,16 @@ const UserManagement = () => {
     }
   }, []);
 
-  useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
+  const fetchAdmins = useCallback(async () => {
+    try {
+      const response = await api.get('/admin/admins');
+      setAdmins(response.data.admins);
+      calculateAdminStats(response.data.admins);
+    } catch (error) {
+      console.error('Failed to fetch admins:', error);
+      setSnackbar({ open: true, message: 'Failed to fetch admins', severity: 'error' });
+    }
+  }, []);
 
   useEffect(() => {
     const filtered = users.filter(user =>
@@ -73,6 +88,71 @@ const UserManagement = () => {
       totalBalance: userList.reduce((sum, u) => sum + u.walletBalance, 0)
     };
     setStats(stats);
+  };
+
+  const calculateAdminStats = (adminList) => {
+    const stats = {
+      total: adminList.length,
+      pending: adminList.filter(a => !a.isApproved).length,
+      approved: adminList.filter(a => a.isApproved).length
+    };
+    setAdminStats(stats);
+  };
+
+  const fetchCurrentUser = useCallback(async () => {
+    try {
+      const response = await api.get('/auth/profile');
+      setIsDefaultAdmin(response.data.user.email === 'proxyvanta@gmail.com');
+    } catch (error) {
+      console.error('Failed to fetch current user:', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchUsers();
+    fetchAdmins();
+    fetchCurrentUser();
+  }, [fetchUsers, fetchAdmins, fetchCurrentUser]);
+
+  const handleApproveAdmin = async (adminId) => {
+    try {
+      await api.patch(`/admin/admins/${adminId}/approve`);
+      setSnackbar({ open: true, message: 'Admin approved successfully', severity: 'success' });
+      fetchAdmins();
+    } catch (error) {
+      console.error('Failed to approve admin:', error);
+      setSnackbar({ open: true, message: error.response?.data?.message || 'Failed to approve admin', severity: 'error' });
+    }
+  };
+
+  const handleDisapproveAdmin = async (adminId) => {
+    if (!window.confirm('Are you sure you want to disapprove this admin? They will lose admin privileges.')) {
+      return;
+    }
+
+    try {
+      await api.patch(`/admin/admins/${adminId}/disapprove`);
+      setSnackbar({ open: true, message: 'Admin disapproved successfully', severity: 'success' });
+      fetchAdmins();
+    } catch (error) {
+      console.error('Failed to disapprove admin:', error);
+      setSnackbar({ open: true, message: error.response?.data?.message || 'Failed to disapprove admin', severity: 'error' });
+    }
+  };
+
+  const handleDeleteAdmin = async (adminId, adminEmail) => {
+    if (!window.confirm(`Are you sure you want to permanently delete admin ${adminEmail}? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      await api.delete(`/admin/admins/${adminId}`);
+      setSnackbar({ open: true, message: 'Admin deleted successfully', severity: 'success' });
+      fetchAdmins();
+    } catch (error) {
+      console.error('Failed to delete admin:', error);
+      setSnackbar({ open: true, message: error.response?.data?.message || 'Failed to delete admin', severity: 'error' });
+    }
   };
 
   const handleViewDetails = async (userId) => {
@@ -192,6 +272,17 @@ const UserManagement = () => {
         </Typography>
       </Box>
 
+      {/* Tabs */}
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+        <Tabs value={currentTab} onChange={(e, newValue) => setCurrentTab(newValue)} centered>
+          <Tab label="Users" icon={<PeopleIcon />} iconPosition="start" />
+          <Tab label="Admins" icon={<AdminIcon />} iconPosition="start" />
+        </Tabs>
+      </Box>
+
+      {/* Tab Panel 0 - Users */}
+      {currentTab === 0 && (
+        <>
       {/* Statistics Cards */}
       <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ mb: { xs: 3, sm: 4 } }}>
         <Grid item xs={12} sm={6} md={3}>
@@ -1274,6 +1365,259 @@ const UserManagement = () => {
           </Button>
         </DialogActions>
       </Dialog>
+      </>
+      )}
+
+      {/* Tab Panel 1 - Admins */}
+      {currentTab === 1 && (
+        <>
+          {/* Admin Statistics Cards */}
+          <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ mb: { xs: 3, sm: 4 } }}>
+            <Grid item xs={12} sm={4}>
+              <Card sx={{
+                borderRadius: 3,
+                boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                color: 'white'
+              }}>
+                <CardContent>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Box>
+                      <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
+                        {adminStats.total}
+                      </Typography>
+                      <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                        Total Admins
+                      </Typography>
+                    </Box>
+                    <AdminIcon sx={{ fontSize: 48, opacity: 0.3 }} />
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            <Grid item xs={12} sm={4}>
+              <Card sx={{
+                borderRadius: 3,
+                boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+                background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                color: 'white'
+              }}>
+                <CardContent>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Box>
+                      <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
+                        {adminStats.pending}
+                      </Typography>
+                      <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                        Pending Approval
+                      </Typography>
+                    </Box>
+                    <PendingIcon sx={{ fontSize: 48, opacity: 0.3 }} />
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            <Grid item xs={12} sm={4}>
+              <Card sx={{
+                borderRadius: 3,
+                boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+                background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                color: 'white'
+              }}>
+                <CardContent>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Box>
+                      <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
+                        {adminStats.approved}
+                      </Typography>
+                      <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                        Approved
+                      </Typography>
+                    </Box>
+                    <HowToRegIcon sx={{ fontSize: 48, opacity: 0.3 }} />
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+
+          {!isDefaultAdmin && (
+            <Alert severity="info" sx={{ mb: 3, borderRadius: 2 }}>
+              <Typography variant="body2">
+                <strong>Admin Management Restricted:</strong> Only the default admin account can approve, disapprove, or delete other admin accounts.
+              </Typography>
+            </Alert>
+          )}
+
+          {/* Admins List */}
+          <Card sx={{
+            borderRadius: 3,
+            boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+            overflow: 'hidden'
+          }}>
+            <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+              <TableContainer>
+                <Table>
+                  <TableHead sx={{
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    '& .MuiTableCell-head': {
+                      color: 'white',
+                      fontWeight: 600,
+                      fontSize: { xs: '0.75rem', sm: '0.875rem' }
+                    }
+                  }}>
+                    <TableRow>
+                      <TableCell>Email</TableCell>
+                      <TableCell align="center">Status</TableCell>
+                      <TableCell align="center">Approved By</TableCell>
+                      <TableCell align="center">Approval Date</TableCell>
+                      <TableCell align="center">Actions</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {admins.map((admin) => (
+                      <TableRow key={admin._id} sx={{
+                        '&:hover': { backgroundColor: 'rgba(102, 126, 234, 0.04)' },
+                        '&:last-child td': { border: 0 }
+                      }}>
+                        <TableCell>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                            <Avatar sx={{ 
+                              bgcolor: admin.isApproved ? 'success.main' : 'warning.main',
+                              width: 36,
+                              height: 36
+                            }}>
+                              <EmailIcon sx={{ fontSize: 20 }} />
+                            </Avatar>
+                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                              {admin.email}
+                            </Typography>
+                          </Box>
+                        </TableCell>
+                        <TableCell align="center">
+                          <Chip
+                            label={admin.isApproved ? 'Approved' : 'Pending'}
+                            color={admin.isApproved ? 'success' : 'warning'}
+                            size="small"
+                            icon={admin.isApproved ? <CheckCircleIcon /> : <PendingIcon />}
+                            sx={{ fontWeight: 600 }}
+                          />
+                        </TableCell>
+                        <TableCell align="center">
+                          <Typography variant="body2" color="text.secondary">
+                            {admin.approvedBy?.email || '-'}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="center">
+                          <Typography variant="body2" color="text.secondary">
+                            {admin.approvedAt ? new Date(admin.approvedAt).toLocaleDateString() : '-'}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="center">
+                          {admin.isApproved ? (
+                            isDefaultAdmin ? (
+                              <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+                                <Tooltip title="Disapprove Admin">
+                                  <IconButton
+                                    onClick={() => handleDisapproveAdmin(admin._id)}
+                                    sx={{
+                                      bgcolor: 'warning.main',
+                                      color: 'white',
+                                      '&:hover': { bgcolor: 'warning.dark' },
+                                      width: 36,
+                                      height: 36
+                                    }}
+                                  >
+                                    <CloseIcon sx={{ fontSize: 18 }} />
+                                  </IconButton>
+                                </Tooltip>
+                                {admin.email !== 'proxyvanta@gmail.com' && (
+                                  <Tooltip title="Delete Admin">
+                                    <IconButton
+                                      onClick={() => handleDeleteAdmin(admin._id, admin.email)}
+                                      sx={{
+                                        bgcolor: 'error.main',
+                                        color: 'white',
+                                        '&:hover': { bgcolor: 'error.dark' },
+                                        width: 36,
+                                        height: 36
+                                      }}
+                                    >
+                                      <DeleteIcon sx={{ fontSize: 18 }} />
+                                    </IconButton>
+                                  </Tooltip>
+                                )}
+                              </Box>
+                            ) : (
+                              <Chip
+                                label="Active"
+                                color="success"
+                                size="small"
+                                variant="outlined"
+                              />
+                            )
+                          ) : (
+                            isDefaultAdmin ? (
+                              <Tooltip title="Approve Admin">
+                                <IconButton
+                                  onClick={() => handleApproveAdmin(admin._id)}
+                                  sx={{
+                                    bgcolor: 'success.main',
+                                    color: 'white',
+                                    '&:hover': { bgcolor: 'success.dark' },
+                                    width: 36,
+                                    height: 36
+                                  }}
+                                >
+                                  <CheckIcon sx={{ fontSize: 18 }} />
+                                </IconButton>
+                              </Tooltip>
+                            ) : (
+                              <Chip
+                                label="Pending"
+                                color="warning"
+                                size="small"
+                                variant="outlined"
+                              />
+                            )
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+
+              {admins.length === 0 && (
+                <Box sx={{ textAlign: 'center', py: 6 }}>
+                  <AdminIcon sx={{ fontSize: 80, color: 'text.disabled', mb: 2 }} />
+                  <Typography variant="h6" color="text.secondary">
+                    No admins found
+                  </Typography>
+                </Box>
+              )}
+            </CardContent>
+          </Card>
+        </>
+      )}
+
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          severity={snackbar.severity}
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
