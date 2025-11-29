@@ -33,7 +33,8 @@ const Dashboard = () => {
     totalUsers: 0,
     totalOrders: 0,
     totalDeposits: 0,
-    totalSpent: 0
+    totalSpent: 0,
+    countryStats: {}
   });
   const [ipStats, setIpStats] = useState({
     total: 0,
@@ -67,9 +68,8 @@ const Dashboard = () => {
   const fetchStats = async () => {
     try {
       setRefreshing(true);
-      const [usersRes, ordersRes, depositsRes, spentRes, ipStatsRes, topIPTiersRes, topUsersRes, pricingRes] = await Promise.all([
-        api.get('/admin/users'),
-        api.get('/admin/orders'),
+      const [dashboardRes, depositsRes, spentRes, ipStatsRes, topIPTiersRes, topUsersRes, pricingRes] = await Promise.all([
+        api.get('/admin/dashboard'),
         api.get('/admin/stats/deposits'),
         api.get('/admin/stats/spent'),
         api.get('/pia/stats'),
@@ -79,10 +79,11 @@ const Dashboard = () => {
       ]);
 
       setStats({
-        totalUsers: usersRes.data.users.length,
-        totalOrders: ordersRes.data.orders.length,
+        totalUsers: dashboardRes.data.totalUsers,
+        totalOrders: dashboardRes.data.totalOrders,
         totalDeposits: depositsRes.data.totalDeposits,
-        totalSpent: spentRes.data.totalSpent
+        totalSpent: spentRes.data.totalSpent,
+        countryStats: dashboardRes.data.countryStats || {}
       });
 
       setIpStats(ipStatsRes.data);
@@ -271,7 +272,14 @@ const Dashboard = () => {
             value={stats.totalUsers.toLocaleString()}
             icon={<PeopleIcon />}
             bgColor="#1976d2"
-            subtitle="Active accounts"
+            subtitle={
+              Object.keys(stats.countryStats).length > 0
+                ? Object.entries(stats.countryStats)
+                    .slice(0, 3) // Show top 3 countries
+                    .map(([country, count]) => `${country}=${count}`)
+                    .join(', ')
+                : "Active accounts"
+            }
           />
         </Grid>
         <Grid item xs={12} sm={6} lg={3}>

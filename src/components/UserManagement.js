@@ -713,6 +713,7 @@ const UserManagement = () => {
                   }}>
                     <TableRow>
                       <TableCell>User</TableCell>
+                      <TableCell align="center">Country</TableCell>
                       <TableCell align="right">Balance</TableCell>
                       <TableCell align="center">Role</TableCell>
                       <TableCell align="center">Status</TableCell>
@@ -761,6 +762,27 @@ const UserManagement = () => {
                                 ID: {user._id.slice(-8)}
                               </Typography>
                             </Box>
+                          </Box>
+                        </TableCell>
+                        <TableCell
+                          align="center"
+                          sx={{
+                            py: { xs: 1.5, sm: 2 },
+                            px: { xs: 1, sm: 2 },
+                            fontSize: { xs: '0.75rem', sm: '0.875rem' }
+                          }}
+                        >
+                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                fontWeight: 500,
+                                color: 'text.primary',
+                                fontSize: { xs: '0.75rem', sm: '0.875rem' }
+                              }}
+                            >
+                              {user.country || 'Unknown'}
+                            </Typography>
                           </Box>
                         </TableCell>
                         <TableCell
