@@ -79,10 +79,10 @@ const Dashboard = () => {
       ]);
 
       setStats({
-        totalUsers: dashboardRes.data.totalUsers,
-        totalOrders: dashboardRes.data.totalOrders,
-        totalDeposits: depositsRes.data.totalDeposits,
-        totalSpent: spentRes.data.totalSpent,
+        totalUsers: dashboardRes.data.totalUsers || 0,
+        totalOrders: dashboardRes.data.totalOrders || 0,
+        totalDeposits: depositsRes.data.totalDeposits || 0,
+        totalSpent: spentRes.data.totalSpent || 0,
         countryStats: dashboardRes.data.countryStats || {}
       });
 
@@ -330,7 +330,7 @@ const Dashboard = () => {
                   mb: 1
                 }}
               >
-                {stats.totalUsers.toLocaleString()}
+                {(stats.totalUsers || 0).toLocaleString()}
               </Typography>
               {Object.keys(stats.countryStats).length > 0 ? (
                 <Box sx={{ mt: 1 }}>
@@ -394,7 +394,7 @@ const Dashboard = () => {
         <Grid item xs={12} sm={6} lg={3}>
           <StatCard
             title="Total Orders"
-            value={stats.totalOrders.toLocaleString()}
+            value={(stats.totalOrders || 0).toLocaleString()}
             icon={<OrdersIcon />}
             bgColor="#388e3c"
             subtitle="Proxy purchases"
@@ -403,7 +403,7 @@ const Dashboard = () => {
         <Grid item xs={12} sm={6} lg={3}>
           <StatCard
             title="Total Deposits"
-            value={`GHS ${stats.totalDeposits.toLocaleString()}`}
+            value={`GHS ${(stats.totalDeposits || 0).toLocaleString()}`}
             icon={<DepositsIcon />}
             bgColor="#7b1fa2"
             subtitle="User funds"
@@ -412,7 +412,7 @@ const Dashboard = () => {
         <Grid item xs={12} sm={6} lg={3}>
           <StatCard
             title="Total Spent"
-            value={`GHS ${stats.totalSpent.toLocaleString()}`}
+            value={`GHS ${(stats.totalSpent || 0).toLocaleString()}`}
             icon={<SpentIcon />}
             bgColor="#d32f2f"
             subtitle="On proxies"
@@ -453,9 +453,9 @@ const Dashboard = () => {
               </Typography>
             </Box>
 
-            {ipStats.ipTierStats.length > 0 ? (
+            {ipStats?.ipTierStats?.length > 0 ? (
               <Grid container spacing={{ xs: 1.5, sm: 2 }}>
-                {ipStats.ipTierStats.map((tier) => (
+                {ipStats?.ipTierStats?.map((tier) => (
                   <Grid item xs={6} sm={4} md={3} lg={2} key={tier.ip}>
                     <Card
                       sx={{
@@ -547,7 +547,7 @@ const Dashboard = () => {
                         fontSize: { xs: '1rem', sm: '1.25rem' }
                       }}
                     >
-                      {ipStats.total}
+                      {ipStats?.total || 0}
                     </Typography>
                     <Typography
                       variant="body2"
@@ -568,7 +568,7 @@ const Dashboard = () => {
                         fontSize: { xs: '1rem', sm: '1.25rem' }
                       }}
                     >
-                      {ipStats.unassigned}
+                      {ipStats?.unassigned || 0}
                     </Typography>
                     <Typography
                       variant="body2"
@@ -589,7 +589,7 @@ const Dashboard = () => {
                         fontSize: { xs: '1rem', sm: '1.25rem' }
                       }}
                     >
-                      {ipStats.assigned}
+                      {ipStats?.assigned || 0}
                     </Typography>
                     <Typography
                       variant="body2"
@@ -807,10 +807,10 @@ const Dashboard = () => {
                   Top Performing IP Tiers
                 </Typography>
 
-                {performanceData.topIPTiers.length > 0 ? (
+                {performanceData?.topIPTiers?.length > 0 ? (
                   <Box sx={{ height: 300 }}>
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={performanceData.topIPTiers} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                      <BarChart data={performanceData?.topIPTiers || []} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                         <XAxis
                           dataKey="ipTier"
@@ -821,7 +821,7 @@ const Dashboard = () => {
                         <YAxis
                           stroke="#666"
                           fontSize={12}
-                          tickFormatter={(value) => `₵${value.toLocaleString()}`}
+                          tickFormatter={(value) => `₵${(value || 0).toLocaleString()}`}
                         />
                         <RechartsTooltip
                           contentStyle={{
@@ -831,7 +831,7 @@ const Dashboard = () => {
                             boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
                           }}
                           formatter={(value, name) => [
-                            name === 'totalRevenue' ? `₵${value.toLocaleString()}` : value,
+                            name === 'totalRevenue' ? `₵${(value || 0).toLocaleString()}` : value,
                             name === 'totalRevenue' ? 'Total Revenue' : 'Orders'
                           ]}
                           labelFormatter={(label) => `${label} IP Tier`}
@@ -881,11 +881,11 @@ const Dashboard = () => {
                   Top Performing Users
                 </Typography>
 
-                {performanceData.topUsers.length > 0 ? (
+                {performanceData?.topUsers?.length > 0 ? (
                   <Box sx={{ height: 300 }}>
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart
-                        data={performanceData.topUsers}
+                        data={performanceData?.topUsers || []}
                         margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
                         layout="horizontal"
                       >
@@ -894,7 +894,7 @@ const Dashboard = () => {
                           type="number"
                           stroke="#666"
                           fontSize={12}
-                          tickFormatter={(value) => `₵${value.toLocaleString()}`}
+                          tickFormatter={(value) => `₵${(value || 0).toLocaleString()}`}
                         />
                         <YAxis
                           type="category"
@@ -912,7 +912,7 @@ const Dashboard = () => {
                             boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
                           }}
                           formatter={(value, name) => [
-                            `₵${value.toLocaleString()}`,
+                            `₵${(value || 0).toLocaleString()}`,
                             'Total Spent'
                           ]}
                           labelFormatter={(label) => `User: ${label}`}
@@ -968,7 +968,7 @@ const Dashboard = () => {
                       color="text.secondary"
                       sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
                     >
-                      Revenue Generated: GHS {(stats.totalSpent * 0.1).toLocaleString()} (estimated)
+                      Revenue Generated: GHS {((stats.totalSpent || 0) * 0.1).toLocaleString()} (estimated)
                     </Typography>
                   </Box>
                   <Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -978,7 +978,7 @@ const Dashboard = () => {
                       color="text.secondary"
                       sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
                     >
-                      IP Utilization: {stats.totalOrders > 0 ? Math.round((stats.totalOrders / (stats.totalOrders + ipStats.unassigned)) * 100) : 0}% of total capacity
+                      IP Utilization: {stats.totalOrders > 0 ? Math.round((stats.totalOrders / (stats.totalOrders + (ipStats?.unassigned || 0))) * 100) : 0}% of total capacity
                     </Typography>
                   </Box>
                 </Box>
@@ -993,7 +993,7 @@ const Dashboard = () => {
                       fontSize: { xs: '0.8rem', sm: '0.875rem' }
                     }}
                   >
-                    Last updated: {lastUpdated.toLocaleString()}
+                    Last updated: {lastUpdated?.toLocaleString() || 'Never'}
                   </Typography>
                   <Typography
                     variant="body2"

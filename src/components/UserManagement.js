@@ -28,7 +28,8 @@ import {
   Block as BlockIcon,
   CheckCircle as ActiveIcon,
   HowToReg as HowToRegIcon,
-  Pending as PendingIcon
+  Pending as PendingIcon,
+  Edit as EditIcon
 } from '@mui/icons-material';
 import api from '../services/api';
 
@@ -45,6 +46,8 @@ const UserManagement = () => {
   const [adminStats, setAdminStats] = useState({ total: 0, pending: 0, approved: 0 });
   const [isDefaultAdmin, setIsDefaultAdmin] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [editingWallet, setEditingWallet] = useState(false);
+  const [newWalletBalance, setNewWalletBalance] = useState(0);
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -171,6 +174,20 @@ const UserManagement = () => {
   const handleCloseDetails = () => {
     setSelectedUser(null);
     setUserDetails(null);
+  };
+
+  const handleUpdateWalletBalance = async () => {
+    try {
+      await api.put(`/admin/users/${selectedUser}/wallet`, { balance: newWalletBalance });
+      setEditingWallet(false);
+      // Refresh user details to show updated balance
+      const response = await api.get(`/admin/users/${selectedUser}`);
+      setUserDetails(response.data);
+      setSnackbar({ open: true, message: 'Wallet balance updated successfully', severity: 'success' });
+    } catch (error) {
+      console.error('Failed to update wallet balance:', error);
+      setSnackbar({ open: true, message: 'Failed to update wallet balance', severity: 'error' });
+    }
   };
 
   const handleApproveTransaction = async (transactionId) => {
@@ -1037,18 +1054,59 @@ const UserManagement = () => {
                           <Avatar sx={{ bgcolor: 'success.main' }}>
                             <WalletIcon />
                           </Avatar>
-                          <Box>
-                            <Typography variant="body2" color="text.secondary">Wallet Balance</Typography>
-                            <Typography
-                              variant="h6"
-                              sx={{
-                                fontWeight: 700,
-                                color: 'success.main',
-                                fontSize: { xs: '1.25rem', sm: '1.5rem' }
-                              }}
-                            >
-                              ₵{userDetails.user.walletBalance.toLocaleString()}
-                            </Typography>
+                          <Box sx={{ flex: 1 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                              <Typography variant="body2" color="text.secondary">Wallet Balance</Typography>
+                              <IconButton
+                                size="small"
+                                onClick={() => {
+                                  setEditingWallet(true);
+                                  setNewWalletBalance(userDetails.user.walletBalance);
+                                }}
+                                sx={{ color: 'primary.main' }}
+                              >
+                                <EditIcon fontSize="small" />
+                              </IconButton>
+                            </Box>
+                            {editingWallet ? (
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
+                                <TextField
+                                  size="small"
+                                  type="number"
+                                  value={newWalletBalance}
+                                  onChange={(e) => setNewWalletBalance(parseFloat(e.target.value) || 0)}
+                                  InputProps={{
+                                    startAdornment: <InputAdornment position="start">₵</InputAdornment>,
+                                  }}
+                                  sx={{ flex: 1 }}
+                                />
+                                <IconButton
+                                  size="small"
+                                  onClick={handleUpdateWalletBalance}
+                                  sx={{ color: 'success.main' }}
+                                >
+                                  <CheckIcon />
+                                </IconButton>
+                                <IconButton
+                                  size="small"
+                                  onClick={() => setEditingWallet(false)}
+                                  sx={{ color: 'error.main' }}
+                                >
+                                  <CloseIcon />
+                                </IconButton>
+                              </Box>
+                            ) : (
+                              <Typography
+                                variant="h6"
+                                sx={{
+                                  fontWeight: 700,
+                                  color: 'success.main',
+                                  fontSize: { xs: '1.25rem', sm: '1.5rem' }
+                                }}
+                              >
+                                ₵{userDetails.user.walletBalance.toLocaleString()}
+                              </Typography>
+                            )}
                           </Box>
                         </Box>
                       </CardContent>
