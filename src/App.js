@@ -17,6 +17,7 @@ import LogsMonitor from './components/LogsMonitor';
 import SupportManagement from './components/SupportManagement';
 import EmailManagement from './components/EmailManagement';
 import NewsManagement from './components/NewsManagement';
+import PaymentManagement from './components/PaymentManagement';
 import {
   AppBar,
   Toolbar,
@@ -41,6 +42,7 @@ import {
   People as PeopleIcon,
   ShoppingCart as ShoppingCartIcon,
   AttachMoney as AttachMoneyIcon,
+  Payment as PaymentIcon,
   VpnKey as VpnKeyIcon,
   BarChart as BarChartIcon,
   Assessment as AssessmentIcon,
@@ -134,16 +136,52 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           paddingLeft: {
-            xs: 16,
-            sm: 24,
-            md: 32,
-            lg: 40,
+            xs: 12,
+            sm: 16,
+            md: 24,
+            lg: 32,
+            xl: 40,
           },
           paddingRight: {
-            xs: 16,
-            sm: 24,
-            md: 32,
-            lg: 40,
+            xs: 12,
+            sm: 16,
+            md: 24,
+            lg: 32,
+            xl: 40,
+          },
+        },
+      },
+    },
+    MuiDialog: {
+      styleOverrides: {
+        paper: {
+          margin: {
+            xs: 8,
+            sm: 16,
+            md: 24,
+          },
+          width: {
+            xs: 'calc(100% - 16px)',
+            sm: 'auto',
+          },
+          maxWidth: {
+            xs: 'calc(100% - 16px)',
+            sm: '600px',
+            md: '800px',
+          },
+        },
+      },
+    },
+    MuiTableContainer: {
+      styleOverrides: {
+        root: {
+          overflowX: 'auto',
+          '& .MuiTable-root': {
+            minWidth: {
+              xs: 600,
+              sm: 700,
+              md: '100%',
+            },
           },
         },
       },
@@ -274,6 +312,7 @@ const Layout = ({ children }) => {
     { text: 'Orders', path: '/orders', icon: <ShoppingCartIcon /> },
     { text: 'News', path: '/news', icon: <CampaignIcon /> },
     { text: 'Pricing', path: '/pricing', icon: <AttachMoneyIcon /> },
+    { text: 'Payments', path: '/payments', icon: <PaymentIcon /> },
     { text: 'Proxy Pool', path: '/proxies/pool', icon: <VpnKeyIcon /> },
     { text: 'Proxy Stats', path: '/proxies/stats', icon: <BarChartIcon /> },
     { text: 'Logs', path: '/logs', icon: <AssessmentIcon /> },
@@ -526,6 +565,11 @@ function App() {
             <Route path="/pricing" element={
               <ProtectedRoute>
                 <Layout><PricingConfig /></Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/payments" element={
+              <ProtectedRoute>
+                <Layout><PaymentManagement /></Layout>
               </ProtectedRoute>
             } />
             <Route path="/logs" element={

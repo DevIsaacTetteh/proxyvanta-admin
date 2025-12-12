@@ -267,20 +267,129 @@ const Dashboard = () => {
       {/* Stats Grid */}
       <Grid container spacing={{ xs: 2, sm: 3 }}>
         <Grid item xs={12} sm={6} lg={3}>
-          <StatCard
-            title="Total Users"
-            value={stats.totalUsers.toLocaleString()}
-            icon={<PeopleIcon />}
-            bgColor="#1976d2"
-            subtitle={
-              Object.keys(stats.countryStats).length > 0
-                ? Object.entries(stats.countryStats)
+          <Card
+            sx={{
+              height: '100%',
+              background: 'linear-gradient(135deg, #1976d2 0%, #1976d2dd 100%)',
+              color: 'white',
+              position: 'relative',
+              overflow: 'hidden',
+              '&::before': {
+                content: '""',
+                position: 'absolute',
+                top: 0,
+                right: 0,
+                width: '100px',
+                height: '100px',
+                background: 'rgba(255, 255, 255, 0.1)',
+                borderRadius: '50%',
+                transform: 'translate(30px, -30px)',
+              },
+              transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+                boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
+              }
+            }}
+          >
+            <CardContent sx={{ p: { xs: 2, sm: 3 }, position: 'relative', zIndex: 1 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: { xs: 1.5, sm: 2 } }}>
+                <Avatar
+                  sx={{
+                    bgcolor: 'rgba(255, 255, 255, 0.2)',
+                    width: { xs: 40, sm: 48 },
+                    height: { xs: 40, sm: 48 },
+                    backdropFilter: 'blur(10px)'
+                  }}
+                >
+                  <PeopleIcon />
+                </Avatar>
+                <Box sx={{ textAlign: 'right', minWidth: 0, flex: 1, ml: 2 }}>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      opacity: 0.8,
+                      fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                      fontWeight: 500,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    Total Users
+                  </Typography>
+                </Box>
+              </Box>
+              <Typography
+                variant="h4"
+                sx={{
+                  fontWeight: 700,
+                  fontSize: { xs: '1.5rem', sm: '1.75rem', md: '2rem' },
+                  lineHeight: 1.2,
+                  wordBreak: 'break-word',
+                  mb: 1
+                }}
+              >
+                {stats.totalUsers.toLocaleString()}
+              </Typography>
+              {Object.keys(stats.countryStats).length > 0 ? (
+                <Box sx={{ mt: 1 }}>
+                  {Object.entries(stats.countryStats)
                     .slice(0, 3) // Show top 3 countries
-                    .map(([country, count]) => `${country}=${count}`)
-                    .join(', ')
-                : "Active accounts"
-            }
-          />
+                    .map(([country, count], index) => (
+                      <Box
+                        key={country}
+                        sx={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          py: 0.25,
+                          px: 0.5,
+                          bgcolor: 'rgba(255, 255, 255, 0.1)',
+                          borderRadius: '4px',
+                          mb: index < 2 ? 0.5 : 0, // Don't add margin to last item
+                          fontSize: { xs: '0.7rem', sm: '0.75rem' }
+                        }}
+                      >
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            color: 'white',
+                            fontWeight: 500,
+                            fontSize: 'inherit'
+                          }}
+                        >
+                          {country}
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            color: 'white',
+                            opacity: 0.9,
+                            fontSize: 'inherit',
+                            fontWeight: 600
+                          }}
+                        >
+                          {count}
+                        </Typography>
+                      </Box>
+                    ))}
+                </Box>
+              ) : (
+                <Typography
+                  variant="caption"
+                  sx={{
+                    opacity: 0.7,
+                    fontSize: { xs: '0.7rem', sm: '0.75rem' },
+                    mt: 0.5,
+                    display: 'block'
+                  }}
+                >
+                  Active accounts
+                </Typography>
+              )}
+            </CardContent>
+          </Card>
         </Grid>
         <Grid item xs={12} sm={6} lg={3}>
           <StatCard
