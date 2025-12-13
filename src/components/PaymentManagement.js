@@ -6,7 +6,7 @@ import {
   Tabs, Tab, Dialog, DialogTitle, DialogContent,
   DialogActions, IconButton, Tooltip, Paper, FormControl,
   InputLabel, Select, MenuItem, Accordion, AccordionSummary,
-  AccordionDetails
+  AccordionDetails, InputAdornment, Divider
 } from '@mui/material';
 import {
   Payment as PaymentIcon,
@@ -29,7 +29,8 @@ import api from '../services/api';
 
 const PaymentManagement = () => {
   const [activeTab, setActiveTab] = useState(0);
-  const [exchangeRate, setExchangeRate] = useState(162);
+  const [exchangeRate, setExchangeRate] = useState(null);
+  const [exchangeRateInfo, setExchangeRateInfo] = useState(null);
   const [newExchangeRate, setNewExchangeRate] = useState('');
   const [isEditingRate, setIsEditingRate] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -79,9 +80,21 @@ const PaymentManagement = () => {
     try {
       const response = await api.get('/admin/nigerian-payments/exchange-rate');
       setExchangeRate(response.data.rate);
+      setExchangeRateInfo({
+        rate: response.data.rate,
+        lastUpdated: response.data.lastUpdated,
+        setBy: response.data.setBy
+      });
     } catch (error) {
-      console.error('Failed to fetch exchange rate:', error);
-      showSnackbar('Failed to fetch exchange rate', 'error');
+      if (error.response?.status === 404) {
+        // No exchange rate set yet
+        setExchangeRate(null);
+        setExchangeRateInfo(null);
+        console.log('No exchange rate set yet - admin needs to configure it');
+      } else {
+        console.error('Failed to fetch exchange rate:', error);
+        showSnackbar('Failed to fetch exchange rate', 'error');
+      }
     }
   }, []);
 
@@ -182,7 +195,8 @@ const PaymentManagement = () => {
         rate: parseFloat(newExchangeRate)
       });
 
-      setExchangeRate(parseFloat(newExchangeRate));
+      // Refresh exchange rate data
+      await fetchExchangeRate();
       setIsEditingRate(false);
       setNewExchangeRate('');
       showSnackbar('Exchange rate updated successfully', 'success');
@@ -776,97 +790,220 @@ const PaymentManagement = () => {
           {activeTab === 0 && (
             <Box sx={{ p: { xs: 2, sm: 3 } }}>
               {/* Exchange Rate Management */}
-              <Card sx={{ mb: 3, borderRadius: 2, bgcolor: 'grey.50' }}>
-                <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-                  <Box sx={{ 
-                    display: 'flex', 
-                    flexDirection: { xs: 'column', sm: 'row' },
-                    alignItems: { xs: 'flex-start', sm: 'center' },
-                    gap: { xs: 2, sm: 0 },
-                    justifyContent: { sm: 'space-between' }
-                  }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Avatar sx={{ bgcolor: 'primary.main' }}>
-                        <CurrencyExchangeIcon />
-                      </Avatar>
-                      <Box>
-                        <Typography variant="h6" sx={{ 
-                          fontWeight: 700, 
-                          fontSize: { xs: '1rem', sm: '1.25rem' }
-                        }}>
-                          NGN Exchange Rate
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          Current rate for Nigerian users
-                        </Typography>
-                      </Box>
-                    </Box>
-                    <Box sx={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      gap: 2,
-                      width: { xs: '100%', sm: 'auto' },
-                      justifyContent: { xs: 'space-between', sm: 'flex-end' }
-                    }}>
-                      {!isEditingRate ? (
-                        <>
-                          <Typography variant="h5" sx={{ 
-                            fontWeight: 800, 
-                            color: 'primary.main',
-                            fontSize: { xs: '1.25rem', sm: '1.5rem' }
-                          }}>
-                            {`₦${exchangeRate?.toLocaleString() || '162'}`}
-                          </Typography>
-                          <Button
-                            variant="outlined"
-                            startIcon={<EditIcon />}
-                            onClick={() => setIsEditingRate(true)}
-                            size="small"
-                            sx={{ minWidth: { xs: 'auto', sm: '64px' } }}
-                          >
-                            Edit
-                          </Button>
-                        </>
-                      ) : (
-                        <Box sx={{ 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          gap: 1,
-                          width: { xs: '100%', sm: 'auto' }
-                        }}>
-                          <TextField
-                            size="small"
-                            type="number"
-                            value={newExchangeRate}
-                            onChange={(e) => setNewExchangeRate(e.target.value)}
-                            placeholder="Enter new rate"
-                            sx={{ 
-                              width: { xs: '100%', sm: 120 },
-                              flex: { xs: 1, sm: 'none' }
-                            }}
-                          />
-                          <IconButton
-                            color="primary"
-                            onClick={updateExchangeRate}
-                            disabled={loading}
-                            size="small"
-                          >
-                            <SaveIcon />
-                          </IconButton>
-                          <IconButton
-                            color="error"
-                            onClick={() => {
-                              setIsEditingRate(false);
-                              setNewExchangeRate('');
-                            }}
-                            size="small"
-                          >
-                            <CancelIcon />
-                          </IconButton>
-                        </Box>
-                      )}
-                    </Box>
+              <Card sx={{
+                mb: 3,
+                borderRadius: 3,
+                boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+                border: '1px solid rgba(0,0,0,0.06)',
+                overflow: 'hidden'
+              }}>
+                <Box sx={{
+                  bgcolor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  p: 3,
+                  color: 'white'
+                }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+                    <CurrencyExchangeIcon sx={{ fontSize: 28 }} />
+                    <Typography variant="h5" sx={{ fontWeight: 700 }}>
+                      Currency Exchange Rate Management
+                    </Typography>
                   </Box>
+                  <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                    Manage the official GHS to NGN exchange rate for Nigerian payments
+                  </Typography>
+                </Box>
+
+                <CardContent sx={{ p: 3 }}>
+                  <Grid container spacing={3}>
+                    <Grid item xs={12} md={6}>
+                      <Box sx={{
+                        p: 3,
+                        bgcolor: 'grey.50',
+                        borderRadius: 2,
+                        border: '1px solid rgba(0,0,0,0.06)'
+                      }}>
+                        <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: 'primary.main' }}>
+                          Current Exchange Rate
+                        </Typography>
+
+                        {!isEditingRate ? (
+                          <Box>
+                            {exchangeRate ? (
+                              <>
+                                <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, mb: 2 }}>
+                                  <Typography variant="h3" sx={{
+                                    fontWeight: 800,
+                                    color: 'primary.main',
+                                    fontSize: { xs: '2rem', sm: '2.5rem' }
+                                  }}>
+                                    ₦{exchangeRate.toLocaleString()}
+                                  </Typography>
+                                  <Typography variant="body1" color="text.secondary">
+                                    per 1 GHS
+                                  </Typography>
+                                </Box>
+
+                                {exchangeRateInfo && (
+                                  <Box sx={{ mt: 2, p: 2, bgcolor: 'white', borderRadius: 1, border: '1px solid rgba(0,0,0,0.06)' }}>
+                                    <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
+                                      Last Updated: {new Date(exchangeRateInfo.lastUpdated).toLocaleString()}
+                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary">
+                                      Rate ID: {exchangeRateInfo.setBy}
+                                    </Typography>
+                                  </Box>
+                                )}
+
+                                <Button
+                                  variant="contained"
+                                  startIcon={<EditIcon />}
+                                  onClick={() => setIsEditingRate(true)}
+                                  sx={{
+                                    mt: 2,
+                                    borderRadius: 2,
+                                    textTransform: 'none',
+                                    fontWeight: 600
+                                  }}
+                                >
+                                  Update Rate
+                                </Button>
+                              </>
+                            ) : (
+                              <Box sx={{ textAlign: 'center', py: 4 }}>
+                                <CurrencyExchangeIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
+                                <Typography variant="h6" sx={{ mb: 1, color: 'text.secondary' }}>
+                                  No Exchange Rate Set
+                                </Typography>
+                                <Typography variant="body2" sx={{ mb: 3, color: 'text.secondary' }}>
+                                  Set the official GHS to NGN exchange rate for Nigerian payments
+                                </Typography>
+                                <Button
+                                  variant="contained"
+                                  startIcon={<EditIcon />}
+                                  onClick={() => setIsEditingRate(true)}
+                                  sx={{
+                                    borderRadius: 2,
+                                    textTransform: 'none',
+                                    fontWeight: 600
+                                  }}
+                                >
+                                  Set Exchange Rate
+                                </Button>
+                              </Box>
+                            )}
+                          </Box>
+                        ) : (
+                          <Box>
+                            <Typography variant="body1" sx={{ mb: 2, color: 'text.secondary' }}>
+                              Enter the new exchange rate (NGN per 1 GHS):
+                            </Typography>
+
+                            <TextField
+                              fullWidth
+                              size="medium"
+                              type="number"
+                              value={newExchangeRate}
+                              onChange={(e) => setNewExchangeRate(e.target.value)}
+                              placeholder="e.g., 162.50"
+                              InputProps={{
+                                startAdornment: <InputAdornment position="start">₦</InputAdornment>,
+                              }}
+                              sx={{
+                                mb: 2,
+                                '& .MuiOutlinedInput-root': {
+                                  borderRadius: 2
+                                }
+                              }}
+                              helperText="Enter a positive number greater than 0"
+                            />
+
+                            <Box sx={{ display: 'flex', gap: 1 }}>
+                              <Button
+                                variant="contained"
+                                startIcon={<SaveIcon />}
+                                onClick={updateExchangeRate}
+                                disabled={loading || !newExchangeRate || parseFloat(newExchangeRate) <= 0}
+                                sx={{
+                                  borderRadius: 2,
+                                  textTransform: 'none',
+                                  fontWeight: 600,
+                                  flex: 1
+                                }}
+                              >
+                                {loading ? 'Updating...' : 'Save Rate'}
+                              </Button>
+                              <Button
+                                variant="outlined"
+                                startIcon={<CancelIcon />}
+                                onClick={() => {
+                                  setIsEditingRate(false);
+                                  setNewExchangeRate('');
+                                }}
+                                disabled={loading}
+                                sx={{
+                                  borderRadius: 2,
+                                  textTransform: 'none'
+                                }}
+                              >
+                                Cancel
+                              </Button>
+                            </Box>
+                          </Box>
+                        )}
+                      </Box>
+                    </Grid>
+
+                    <Grid item xs={12} md={6}>
+                      <Box sx={{
+                        p: 3,
+                        bgcolor: 'success.50',
+                        borderRadius: 2,
+                        border: '1px solid rgba(76, 175, 80, 0.2)',
+                        height: '100%'
+                      }}>
+                        <Typography variant="h6" sx={{ mb: 3, fontWeight: 600, color: 'success.main' }}>
+                          💱 Rate Impact Preview
+                        </Typography>
+
+                        {exchangeRate ? (
+                          <Box>
+                            <Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
+                              Example conversion for ₵100 GHS:
+                            </Typography>
+                            <Box sx={{
+                              p: 2,
+                              bgcolor: 'white',
+                              borderRadius: 1,
+                              border: '1px solid rgba(0,0,0,0.06)'
+                            }}>
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                                <Typography variant="body1">Amount in GHS:</Typography>
+                                <Typography variant="body1" sx={{ fontWeight: 600 }}>₵100.00</Typography>
+                              </Box>
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                                <Typography variant="body1">Exchange Rate:</Typography>
+                                <Typography variant="body1">1 GHS = ₦{exchangeRate.toLocaleString()}</Typography>
+                              </Box>
+                              <Divider sx={{ my: 1 }} />
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <Typography variant="h6" sx={{ fontWeight: 600 }}>Amount in NGN:</Typography>
+                                <Typography variant="h6" sx={{ fontWeight: 700, color: 'success.main' }}>
+                                  ₦{(100 * exchangeRate).toLocaleString()}
+                                </Typography>
+                              </Box>
+                            </Box>
+                          </Box>
+                        ) : (
+                          <Box sx={{ textAlign: 'center', py: 4 }}>
+                            <CurrencyExchangeIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
+                            <Typography variant="body1" color="text.secondary">
+                              Set an exchange rate to see conversion preview
+                            </Typography>
+                          </Box>
+                        )}
+                      </Box>
+                    </Grid>
+                  </Grid>
                 </CardContent>
               </Card>
 
