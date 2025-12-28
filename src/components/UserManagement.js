@@ -49,9 +49,6 @@ const UserManagement = () => {
   const [editingWallet, setEditingWallet] = useState(false);
   const [newWalletBalance, setNewWalletBalance] = useState(0);
 
-  // Admin-set dollar rate for user balance display
-  const [dollarRate, setDollarRate] = useState(12);
-
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
@@ -105,16 +102,6 @@ const UserManagement = () => {
     setAdminStats(stats);
   };
 
-  const fetchDollarRate = async () => {
-    try {
-      const response = await api.get('/admin/dollar-rate');
-      setDollarRate(response.data.rate);
-    } catch (error) {
-      console.error('Failed to fetch admin dollar rate:', error);
-      // Keep the current rate if fetch fails
-    }
-  };
-
   const fetchCurrentUser = useCallback(async () => {
     try {
       const response = await api.get('/auth/profile');
@@ -128,13 +115,9 @@ const UserManagement = () => {
     fetchUsers();
     fetchAdmins();
     fetchCurrentUser();
-    fetchDollarRate(); // Fetch admin-set dollar rate
-
-    // Set up periodic dollar rate updates every 5 minutes
-    const dollarRateInterval = setInterval(fetchDollarRate, 5 * 60 * 1000);
 
     return () => {
-      clearInterval(dollarRateInterval);
+      // Cleanup if needed
     };
   }, [fetchUsers, fetchAdmins, fetchCurrentUser]);
 
@@ -524,17 +507,7 @@ const UserManagement = () => {
                     wordBreak: 'break-word'
                   }}
                 >
-                  ₵{stats.totalBalance.toLocaleString()}
-                </Typography>
-                <Typography
-                  variant="body1"
-                  sx={{
-                    fontWeight: 600,
-                    fontSize: { xs: '0.875rem', sm: '1rem' },
-                    wordBreak: 'break-word'
-                  }}
-                >
-                  ${(stats.totalBalance / dollarRate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  ${stats.totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </Typography>
               </Box>
               <Typography variant="body2" sx={{ opacity: 0.9, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
@@ -643,7 +616,7 @@ const UserManagement = () => {
                                 fontSize: { xs: '1rem', sm: '1.1rem' }
                               }}
                             >
-                              ₵{user.walletBalance.toLocaleString()}
+                              ${user.walletBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </Typography>
                           </Grid>
                           <Grid item xs={6}>
@@ -850,7 +823,7 @@ const UserManagement = () => {
                               fontSize: { xs: '0.875rem', sm: '1rem' }
                             }}
                           >
-                            ₵{user.walletBalance.toLocaleString()}
+                            ${user.walletBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </Typography>
                         </TableCell>
                         <TableCell
@@ -1108,7 +1081,7 @@ const UserManagement = () => {
                                   value={newWalletBalance}
                                   onChange={(e) => setNewWalletBalance(parseFloat(e.target.value) || 0)}
                                   InputProps={{
-                                    startAdornment: <InputAdornment position="start">₵</InputAdornment>,
+                                    startAdornment: <InputAdornment position="start">$</InputAdornment>,
                                   }}
                                   sx={{ flex: 1 }}
                                 />
@@ -1136,7 +1109,7 @@ const UserManagement = () => {
                                   fontSize: { xs: '1.25rem', sm: '1.5rem' }
                                 }}
                               >
-                                ₵{userDetails.user.walletBalance.toLocaleString()}
+                                ${userDetails.user.walletBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                               </Typography>
                             )}
                           </Box>

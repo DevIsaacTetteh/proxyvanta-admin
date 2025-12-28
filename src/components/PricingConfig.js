@@ -1,46 +1,62 @@
 import React, { useState, useEffect } from 'react';
 import {
   Button, Typography, Box, Alert, Card, CardContent, Grid, IconButton,
-  TextField, Paper, Chip, Avatar, Container
+  TextField, Paper, Chip, Avatar, Container, Divider
 } from '@mui/material';
 import {
   Refresh as RefreshIcon,
   Inventory as InventoryIcon, Settings as SettingsIcon,
-  TrendingUp as TrendingUpIcon, Save as SaveIcon
+  TrendingUp as TrendingUpIcon, Save as SaveIcon, AttachMoney as MoneyIcon
 } from '@mui/icons-material';
 import api from '../services/api';
 
 const PricingConfig = () => {
-  const [selectedIPs, setSelectedIPs] = useState(5);
+  const [selectedTier, setSelectedTier] = useState(5);
   const [pricingGroups, setPricingGroups] = useState([]);
   
   const [proxyStats, setProxyStats] = useState(null);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
-  const [editingPrice, setEditingPrice] = useState('10');
+  const [editingPrice, setEditingPrice] = useState('0.81');
   
-  // Dollar rate state
-  const [dollarRate, setDollarRate] = useState('');
-  const [editingDollarRate, setEditingDollarRate] = useState('');
-  const [dollarRateLoading, setDollarRateLoading] = useState(false);
-
-  const ipOptions = [5, 10, 25, 50, 100, 200, 300, 400, 800, 1000, 1200, 1600, 2200, 3000];
+  // Tier options with default USD prices
+  const tierOptions = [
+    { ips: 5, defaultPrice: 0.81 },
+    { ips: 10, defaultPrice: 1.50 },
+    { ips: 25, defaultPrice: 3.50 },
+    { ips: 50, defaultPrice: 6.50 },
+    { ips: 100, defaultPrice: 12.00 },
+    { ips: 200, defaultPrice: 22.00 },
+    { ips: 300, defaultPrice: 30.00 },
+    { ips: 400, defaultPrice: 35.00 },
+    { ips: 800, defaultPrice: 60.00 },
+    { ips: 1000, defaultPrice: 70.00 },
+    { ips: 1200, defaultPrice: 80.00 },
+    { ips: 1600, defaultPrice: 100.00 },
+    { ips: 2200, defaultPrice: 130.00 },
+    { ips: 3000, defaultPrice: 160.00 }
+  ];
 
   useEffect(() => {
     fetchCurrentPricing();
     fetchMasterBalance();
     fetchProxyStats();
-    fetchDollarRate();
   }, []);
 
   useEffect(() => {
-    // Set editing price when pricing groups or selected IPs change
-    const group = pricingGroups.find(g => selectedIPs >= g.min && selectedIPs <= g.max);
+    // Set editing price when pricing groups or selected tier change
+    const group = pricingGroups.find(g => selectedTier >= g.min && selectedTier <= g.max);
     if (group) {
       setEditingPrice(group.price.toString());
+    } else {
+      // Set default price for new tier
+      const defaultTier = tierOptions.find(t => t.ips === selectedTier);
+      if (defaultTier) {
+        setEditingPrice(defaultTier.defaultPrice.toString());
+      }
     }
-  }, [pricingGroups, selectedIPs]);
+  }, [pricingGroups, selectedTier]);
 
   const fetchCurrentPricing = async () => {
     try {
@@ -48,42 +64,42 @@ const PricingConfig = () => {
       if (response.data.pricings && response.data.pricings.length > 0) {
         setPricingGroups(response.data.pricings);
       } else {
-        // Set default pricing
+        // Set default tier-based pricing in USD
         setPricingGroups([
-          { range: '5 IPs', min: 5, max: 5, price: 10 },
-          { range: '10 IPs', min: 10, max: 10, price: 9 },
-          { range: '25 IPs', min: 25, max: 25, price: 8 },
-          { range: '50 IPs', min: 50, max: 50, price: 7 },
-          { range: '100 IPs', min: 100, max: 100, price: 6 },
-          { range: '200 IPs', min: 200, max: 200, price: 5 },
-          { range: '300 IPs', min: 300, max: 300, price: 4 },
-          { range: '400 IPs', min: 400, max: 400, price: 3.5 },
-          { range: '800 IPs', min: 800, max: 800, price: 3 },
-          { range: '1000 IPs', min: 1000, max: 1000, price: 2.5 },
-          { range: '1200 IPs', min: 1200, max: 1200, price: 2.2 },
-          { range: '1600 IPs', min: 1600, max: 1600, price: 2 },
-          { range: '2200 IPs', min: 2200, max: 2200, price: 1.8 },
-          { range: '3000 IPs', min: 3000, max: 3000, price: 1.5 }
+          { range: '5 IPs', min: 5, max: 5, price: 0.81 },
+          { range: '10 IPs', min: 10, max: 10, price: 1.50 },
+          { range: '25 IPs', min: 25, max: 25, price: 3.50 },
+          { range: '50 IPs', min: 50, max: 50, price: 6.50 },
+          { range: '100 IPs', min: 100, max: 100, price: 12.00 },
+          { range: '200 IPs', min: 200, max: 200, price: 22.00 },
+          { range: '300 IPs', min: 300, max: 300, price: 30.00 },
+          { range: '400 IPs', min: 400, max: 400, price: 35.00 },
+          { range: '800 IPs', min: 800, max: 800, price: 60.00 },
+          { range: '1000 IPs', min: 1000, max: 1000, price: 70.00 },
+          { range: '1200 IPs', min: 1200, max: 1200, price: 80.00 },
+          { range: '1600 IPs', min: 1600, max: 1600, price: 100.00 },
+          { range: '2200 IPs', min: 2200, max: 2200, price: 130.00 },
+          { range: '3000 IPs', min: 3000, max: 3000, price: 160.00 }
         ]);
       }
     } catch (error) {
       console.error('Failed to fetch pricing:', error);
-      // Set default pricing
+      // Set default tier-based pricing in USD
       setPricingGroups([
-        { range: '5 IPs', min: 5, max: 5, price: 10 },
-        { range: '10 IPs', min: 10, max: 10, price: 9 },
-        { range: '25 IPs', min: 25, max: 25, price: 8 },
-        { range: '50 IPs', min: 50, max: 50, price: 7 },
-        { range: '100 IPs', min: 100, max: 100, price: 6 },
-        { range: '200 IPs', min: 200, max: 200, price: 5 },
-        { range: '300 IPs', min: 300, max: 300, price: 4 },
-        { range: '400 IPs', min: 400, max: 400, price: 3.5 },
-        { range: '800 IPs', min: 800, max: 800, price: 3 },
-        { range: '1000 IPs', min: 1000, max: 1000, price: 2.5 },
-        { range: '1200 IPs', min: 1200, max: 1200, price: 2.2 },
-        { range: '1600 IPs', min: 1600, max: 1600, price: 2 },
-        { range: '2200 IPs', min: 2200, max: 2200, price: 1.8 },
-        { range: '3000 IPs', min: 3000, max: 3000, price: 1.5 }
+        { range: '5 IPs', min: 5, max: 5, price: 0.81 },
+        { range: '10 IPs', min: 10, max: 10, price: 1.50 },
+        { range: '25 IPs', min: 25, max: 25, price: 3.50 },
+        { range: '50 IPs', min: 50, max: 50, price: 6.50 },
+        { range: '100 IPs', min: 100, max: 100, price: 12.00 },
+        { range: '200 IPs', min: 200, max: 200, price: 22.00 },
+        { range: '300 IPs', min: 300, max: 300, price: 30.00 },
+        { range: '400 IPs', min: 400, max: 400, price: 35.00 },
+        { range: '800 IPs', min: 800, max: 800, price: 60.00 },
+        { range: '1000 IPs', min: 1000, max: 1000, price: 70.00 },
+        { range: '1200 IPs', min: 1200, max: 1200, price: 80.00 },
+        { range: '1600 IPs', min: 1600, max: 1600, price: 100.00 },
+        { range: '2200 IPs', min: 2200, max: 2200, price: 130.00 },
+        { range: '3000 IPs', min: 3000, max: 3000, price: 160.00 }
       ]);
     }
   };
@@ -105,28 +121,15 @@ const PricingConfig = () => {
     }
   };
 
-  const fetchDollarRate = async () => {
-    try {
-      const response = await api.get('/admin/dollar-rate');
-      setDollarRate(response.data.rate.toString());
-      setEditingDollarRate(response.data.rate.toString());
-    } catch (error) {
-      console.error('Failed to fetch dollar rate:', error);
-      // Set default rate if not found
-      setDollarRate('12.00');
-      setEditingDollarRate('12.00');
-    }
-  };
-
   const getCurrentPrice = () => {
-    const group = pricingGroups.find(g => selectedIPs >= g.min && selectedIPs <= g.max);
-    return group ? group.price : 10;
+    const group = pricingGroups.find(g => selectedTier >= g.min && selectedTier <= g.max);
+    return group ? group.price : 0.81;
   };
 
   const handlePriceUpdate = async () => {
     const newPrice = parseFloat(editingPrice);
     if (isNaN(newPrice) || newPrice < 0) {
-      setError('Please enter a valid price');
+      setError('Please enter a valid price in USD');
       return;
     }
 
@@ -137,7 +140,7 @@ const PricingConfig = () => {
     try {
       // Update the specific pricing group
       const updatedGroups = pricingGroups.map(group => {
-        if (selectedIPs >= group.min && selectedIPs <= group.max) {
+        if (selectedTier >= group.min && selectedTier <= group.max) {
           return { ...group, price: newPrice };
         }
         return group;
@@ -145,33 +148,11 @@ const PricingConfig = () => {
 
       await api.post('/admin/pricing', { pricingGroups: updatedGroups });
       setPricingGroups(updatedGroups);
-      setMessage('Pricing updated successfully');
+      setMessage('Tier pricing updated successfully');
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to update pricing');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleDollarRateUpdate = async () => {
-    const newRate = parseFloat(editingDollarRate);
-    if (isNaN(newRate) || newRate <= 0) {
-      setError('Please enter a valid dollar rate');
-      return;
-    }
-
-    setDollarRateLoading(true);
-    setError('');
-    setMessage('');
-
-    try {
-      await api.post('/admin/dollar-rate', { rate: newRate });
-      setDollarRate(newRate.toString());
-      setMessage('Dollar rate updated successfully');
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to update dollar rate');
-    } finally {
-      setDollarRateLoading(false);
     }
   };
 
@@ -194,15 +175,15 @@ const PricingConfig = () => {
             fontSize: { xs: '1.5rem', sm: '2rem', md: '2.25rem' }
           }}
         >
-          <SettingsIcon sx={{ mr: { xs: 1, sm: 2 }, verticalAlign: 'middle' }} />
-          Pricing Configuration
+          <MoneyIcon sx={{ mr: { xs: 1, sm: 2 }, verticalAlign: 'middle' }} />
+          Proxy Pricing Configuration
         </Typography>
         <Typography 
           variant="body1" 
           color="text.secondary"
           sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}
         >
-          Manage proxy pricing tiers and monitor account balances
+          Set tier-based proxy prices in USD. Users will see these prices directly without currency conversion.
         </Typography>
       </Box>
 
@@ -275,7 +256,7 @@ const PricingConfig = () => {
             }}
           >
             <TrendingUpIcon sx={{ mr: 1 }} />
-            Current Pricing Overview
+            Current Tier Pricing
           </Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: { xs: 1, sm: 2 } }}>
             <Box sx={{ textAlign: 'center' }}>
@@ -288,35 +269,23 @@ const PricingConfig = () => {
                   fontSize: { xs: '1.75rem', sm: '2.125rem', md: '2.5rem' }
                 }}
               >
-                GHS {getCurrentPrice().toFixed(2)}
+                ${getCurrentPrice().toFixed(2)}
               </Typography>
-              {dollarRate && (
-                <Typography 
-                  variant="h6" 
-                  sx={{ 
-                    fontWeight: 600, 
-                    color: '#2e7d32', 
-                    mb: 1,
-                    fontSize: { xs: '1.125rem', sm: '1.25rem', md: '1.5rem' }
-                  }}
-                >
-                  ${(getCurrentPrice() / parseFloat(dollarRate)).toFixed(2)} USD
-                </Typography>
-              )}
               <Typography 
                 variant="body1" 
                 color="text.secondary"
                 sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}
               >
-                per IP for {selectedIPs} IPs
+                for {selectedTier} IP proxies
               </Typography>
               <Chip
-                label={pricingGroups.find(g => selectedIPs >= g.min && selectedIPs <= g.max)?.range}
+                label={`${selectedTier}IP = $${getCurrentPrice().toFixed(2)}`}
                 sx={{ 
                   mt: 1, 
                   bgcolor: '#e3f2fd', 
                   color: '#1976d2',
-                  fontSize: { xs: '0.75rem', sm: '0.875rem' }
+                  fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                  fontWeight: 600
                 }}
               />
             </Box>
@@ -326,7 +295,7 @@ const PricingConfig = () => {
 
       {/* Pricing Configuration */}
       <Grid container spacing={{ xs: 2, sm: 3 }}>
-        {/* IP Quantity Selector */}
+        {/* Tier Selector */}
         <Grid item xs={12} md={8}>
           <Card sx={{ boxShadow: 2, borderRadius: 2 }}>
             <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
@@ -339,27 +308,27 @@ const PricingConfig = () => {
                   fontSize: { xs: '1.125rem', sm: '1.25rem' }
                 }}
               >
-                Select IP Quantity to Configure
+                Select Proxy Tier to Configure
               </Typography>
               <Grid container spacing={1}>
-                {ipOptions.map((ip) => (
-                  <Grid item xs={6} sm={4} md={3} key={ip}>
+                {tierOptions.map((tier) => (
+                  <Grid item xs={6} sm={4} md={3} key={tier.ips}>
                     <Button
-                      variant={selectedIPs === ip ? 'contained' : 'outlined'}
+                      variant={selectedTier === tier.ips ? 'contained' : 'outlined'}
                       fullWidth
-                      onClick={() => setSelectedIPs(ip)}
+                      onClick={() => setSelectedTier(tier.ips)}
                       sx={{
                         py: { xs: 1, sm: 1.5 },
                         borderRadius: 2,
                         fontWeight: 600,
                         fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                        ...(selectedIPs === ip && {
+                        ...(selectedTier === tier.ips && {
                           bgcolor: '#1976d2',
                           '&:hover': { bgcolor: '#1565c0' }
                         })
                       }}
                     >
-                      {ip} IPs
+                      {tier.ips} IPs
                     </Button>
                   </Grid>
                 ))}
@@ -380,7 +349,7 @@ const PricingConfig = () => {
                   fontSize: { xs: '1.125rem', sm: '1.25rem' }
                 }}
               >
-                Edit Price
+                Edit Tier Price
               </Typography>
               <Typography 
                 variant="body2" 
@@ -390,10 +359,10 @@ const PricingConfig = () => {
                   fontSize: { xs: '0.75rem', sm: '0.875rem' }
                 }}
               >
-                {pricingGroups.find(g => selectedIPs >= g.min && selectedIPs <= g.max)?.range}
+                {pricingGroups.find(g => selectedTier >= g.min && selectedTier <= g.max)?.range}
               </Typography>
               <TextField
-                label="Price per IP (GHS)"
+                label="Price in USD"
                 type="number"
                 value={editingPrice}
                 onChange={(e) => setEditingPrice(e.target.value)}
@@ -432,98 +401,6 @@ const PricingConfig = () => {
         </Grid>
       </Grid>
 
-      {/* Dollar Rate Configuration */}
-      <Card sx={{ mt: { xs: 2, sm: 3 }, boxShadow: 2, borderRadius: 2 }}>
-        <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-          <Typography 
-            variant="h6" 
-            gutterBottom 
-            sx={{ 
-              fontWeight: 600,
-              display: 'flex', 
-              alignItems: 'center',
-              fontSize: { xs: '1.125rem', sm: '1.25rem' }
-            }}
-          >
-            <TrendingUpIcon sx={{ mr: 1 }} />
-            Dollar Rate Configuration
-          </Typography>
-          <Typography 
-            variant="body2" 
-            color="text.secondary" 
-            sx={{ 
-              mb: 3,
-              fontSize: { xs: '0.75rem', sm: '0.875rem' }
-            }}
-          >
-            Set the current USD to GHS exchange rate. This rate is used to display prices in USD to users.
-          </Typography>
-          <Grid container spacing={{ xs: 2, sm: 3 }} alignItems="center">
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label="USD to GHS Rate"
-                type="number"
-                value={editingDollarRate}
-                onChange={(e) => setEditingDollarRate(e.target.value)}
-                fullWidth
-                inputProps={{ min: 0, step: 0.01 }}
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: 2
-                  },
-                  '& .MuiInputLabel-root': {
-                    fontSize: { xs: '0.875rem', sm: '1rem' }
-                  },
-                  '& .MuiOutlinedInput-input': {
-                    fontSize: { xs: '0.875rem', sm: '1rem' }
-                  }
-                }}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <Button
-                variant="contained"
-                fullWidth
-                startIcon={<SaveIcon />}
-                onClick={handleDollarRateUpdate}
-                disabled={dollarRateLoading}
-                sx={{
-                  py: { xs: 1.5, sm: 1.75 },
-                  borderRadius: 2,
-                  fontWeight: 600,
-                  fontSize: { xs: '0.875rem', sm: '1rem' },
-                  bgcolor: '#2e7d32',
-                  '&:hover': { bgcolor: '#1b5e20' }
-                }}
-              >
-                {dollarRateLoading ? 'Updating...' : 'Update Rate'}
-              </Button>
-            </Grid>
-          </Grid>
-          {dollarRate && (
-            <Box sx={{ mt: 2, p: 2, bgcolor: '#f5f5f5', borderRadius: 2 }}>
-              <Typography 
-                variant="body2" 
-                sx={{ 
-                  fontWeight: 600,
-                  color: '#2e7d32',
-                  fontSize: { xs: '0.75rem', sm: '0.875rem' }
-                }}
-              >
-                Current Rate: 1 USD = {parseFloat(dollarRate).toFixed(2)} GHS
-              </Typography>
-              <Typography 
-                variant="body2" 
-                color="text.secondary"
-                sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}
-              >
-                Last updated: {new Date().toLocaleDateString()}
-              </Typography>
-            </Box>
-          )}
-        </CardContent>
-      </Card>
-
       {/* Pricing Tiers Table */}
       <Card sx={{ mt: { xs: 2, sm: 3 }, boxShadow: 2, borderRadius: 2 }}>
         <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
@@ -536,7 +413,17 @@ const PricingConfig = () => {
               fontSize: { xs: '1.125rem', sm: '1.25rem' }
             }}
           >
-            Current Pricing Tiers
+            Current Proxy Pricing Tiers
+          </Typography>
+          <Typography 
+            variant="body2" 
+            color="text.secondary" 
+            sx={{ 
+              mb: 3,
+              fontSize: { xs: '0.75rem', sm: '0.875rem' }
+            }}
+          >
+            All prices are displayed in USD. Users will see these exact prices on the purchase page.
           </Typography>
           <Grid container spacing={{ xs: 1, sm: 2 }}>
             {pricingGroups.map((group, index) => (
@@ -545,8 +432,13 @@ const PricingConfig = () => {
                   sx={{
                     p: { xs: 1.5, sm: 2 },
                     borderRadius: 2,
-                    bgcolor: selectedIPs >= group.min && selectedIPs <= group.max ? '#e3f2fd' : '#fafafa',
-                    border: selectedIPs >= group.min && selectedIPs <= group.max ? '2px solid #1976d2' : '1px solid #e0e0e0'
+                    bgcolor: selectedTier >= group.min && selectedTier <= group.max ? '#e3f2fd' : '#fafafa',
+                    border: selectedTier >= group.min && selectedTier <= group.max ? '2px solid #1976d2' : '1px solid #e0e0e0',
+                    transition: 'all 0.2s ease-in-out',
+                    '&:hover': {
+                      transform: 'translateY(-2px)',
+                      boxShadow: 2
+                    }
                   }}
                 >
                   <Typography 
@@ -559,34 +451,25 @@ const PricingConfig = () => {
                   >
                     {group.range}
                   </Typography>
-                  <Typography 
-                    variant="h5" 
-                    sx={{ 
-                      fontWeight: 700, 
-                      color: '#1976d2',
-                      fontSize: { xs: '1.25rem', sm: '1.5rem', md: '1.75rem' }
-                    }}
-                  >
-                    GHS {group.price.toFixed(2)}
-                  </Typography>
-                  {dollarRate && (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                    <MoneyIcon sx={{ color: '#1976d2', fontSize: '1.2rem' }} />
                     <Typography 
-                      variant="body1" 
+                      variant="h5" 
                       sx={{ 
-                        fontWeight: 600, 
-                        color: '#2e7d32',
-                        fontSize: { xs: '0.875rem', sm: '1rem' }
+                        fontWeight: 700, 
+                        color: '#1976d2',
+                        fontSize: { xs: '1.25rem', sm: '1.5rem', md: '1.75rem' }
                       }}
                     >
-                      ${(group.price / parseFloat(dollarRate)).toFixed(2)} USD
+                      ${group.price.toFixed(2)}
                     </Typography>
-                  )}
+                  </Box>
                   <Typography 
                     variant="body2" 
                     color="text.secondary"
                     sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
                   >
-                    per IP
+                    Total price for {group.min} proxies
                   </Typography>
                 </Paper>
               </Grid>

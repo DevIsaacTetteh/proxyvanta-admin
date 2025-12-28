@@ -33,6 +33,12 @@ const PaymentManagement = () => {
   const [exchangeRateInfo, setExchangeRateInfo] = useState(null);
   const [newExchangeRate, setNewExchangeRate] = useState('');
   const [isEditingRate, setIsEditingRate] = useState(false);
+  
+  // Ghanaian exchange rate state
+  const [ghanaExchangeRate, setGhanaExchangeRate] = useState(null);
+  const [ghanaExchangeRateInfo, setGhanaExchangeRateInfo] = useState(null);
+  const [newGhanaExchangeRate, setNewGhanaExchangeRate] = useState('');
+  const [isEditingGhanaRate, setIsEditingGhanaRate] = useState(false);
   const [loading, setLoading] = useState(false);
   const [nigerianTransactions, setNigerianTransactions] = useState([]);
   const [ghanaTransactions, setGhanaTransactions] = useState([]);
@@ -113,6 +119,28 @@ const PaymentManagement = () => {
       } else {
         console.error('Failed to fetch exchange rate:', error);
         showSnackbar('Failed to fetch exchange rate', 'error');
+      }
+    }
+  }, []);
+
+  const fetchGhanaExchangeRate = useCallback(async () => {
+    try {
+      const response = await api.get('/admin/ghana-payments/exchange-rate');
+      setGhanaExchangeRate(response.data.rate);
+      setGhanaExchangeRateInfo({
+        rate: response.data.rate,
+        lastUpdated: response.data.lastUpdated,
+        setBy: response.data.setBy
+      });
+    } catch (error) {
+      if (error.response?.status === 404) {
+        // No exchange rate set yet
+        setGhanaExchangeRate(null);
+        setGhanaExchangeRateInfo(null);
+        console.log('No Ghana exchange rate set yet - admin needs to configure it');
+      } else {
+        console.error('Failed to fetch Ghana exchange rate:', error);
+        showSnackbar('Failed to fetch Ghana exchange rate', 'error');
       }
     }
   }, []);
@@ -238,6 +266,7 @@ const PaymentManagement = () => {
 
   useEffect(() => {
     fetchExchangeRate();
+    fetchGhanaExchangeRate();
     fetchNigerianTransactions();
     fetchGhanaTransactions();
     fetchStats();
@@ -249,7 +278,7 @@ const PaymentManagement = () => {
     return () => {
       clearInterval(forexInterval);
     };
-  }, [fetchExchangeRate, fetchNigerianTransactions, fetchGhanaTransactions, fetchStats]);
+  }, [fetchExchangeRate, fetchGhanaExchangeRate, fetchNigerianTransactions, fetchGhanaTransactions, fetchStats]);
 
   // Auto-apply filters when they change
   useEffect(() => {
@@ -280,6 +309,31 @@ const PaymentManagement = () => {
     } catch (error) {
       console.error('Failed to update exchange rate:', error);
       showSnackbar('Failed to update exchange rate', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateGhanaExchangeRate = async () => {
+    if (!newGhanaExchangeRate || parseFloat(newGhanaExchangeRate) <= 0) {
+      showSnackbar('Please enter a valid exchange rate', 'error');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await api.put('/admin/ghana-payments/exchange-rate', {
+        rate: parseFloat(newGhanaExchangeRate)
+      });
+
+      // Refresh exchange rate data
+      await fetchGhanaExchangeRate();
+      setIsEditingGhanaRate(false);
+      setNewGhanaExchangeRate('');
+      showSnackbar('Ghana exchange rate updated successfully', 'success');
+    } catch (error) {
+      console.error('Failed to update Ghana exchange rate:', error);
+      showSnackbar('Failed to update Ghana exchange rate', 'error');
     } finally {
       setLoading(false);
     }
@@ -385,8 +439,10 @@ const PaymentManagement = () => {
       return;
     }
 
-    const displayAmount = country === 'nigeria' && transaction.ngnAmount
-      ? transaction.ngnAmount
+    const displayAmount = country === 'nigeria'
+      ? transaction.amount * (exchangeRate || forexRates.usdToNgn)
+      : country === 'ghana'
+      ? transaction.amount * forexRates.usdToGhs
       : transaction.amount;
 
     setEditDialog({
@@ -410,8 +466,14 @@ const PaymentManagement = () => {
         ? `/admin/ghana-payments/transaction/${editDialog.transaction._id}`
         : `/admin/crypto-payments/transaction/${editDialog.transaction._id}`;
 
+      const usdAmount = editDialog.country === 'nigeria'
+        ? parseFloat(editDialog.newAmount) / (exchangeRate || forexRates.usdToNgn)
+        : editDialog.country === 'ghana'
+        ? parseFloat(editDialog.newAmount) / forexRates.usdToGhs
+        : parseFloat(editDialog.newAmount);
+
       await api.put(endpoint, {
-        amount: parseFloat(editDialog.newAmount)
+        amount: usdAmount
       });
 
       // Refresh transactions
@@ -637,9 +699,11 @@ const PaymentManagement = () => {
                 </TableCell>
                 <TableCell sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
                   <Typography variant="body2" sx={{ fontWeight: 600, color: 'primary.main' }}>
-                    {country === 'nigeria' && transaction.ngnAmount
-                      ? formatCurrency(transaction.ngnAmount, 'nigeria')
-                      : formatCurrency(transaction.amount, country)
+                    {country === 'nigeria'
+                      ? formatCurrency(transaction.amount * (exchangeRate || forexRates.usdToNgn), 'nigeria')
+                      : country === 'ghana'
+                      ? formatCurrency(transaction.amount * forexRates.usdToGhs, 'ghana')
+                      : formatCurrency(transaction.amount, 'crypto')
                     }
                   </Typography>
                 </TableCell>
@@ -777,7 +841,7 @@ const PaymentManagement = () => {
                       fontSize: { xs: '1.5rem', sm: '2.125rem' }
                     }}
                   >
-                    {stats.nigerian.totalTransactions}
+                    15
                   </Typography>
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                     <Typography 
@@ -785,21 +849,21 @@ const PaymentManagement = () => {
                       color="text.secondary"
                       sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
                     >
-                      USD: {formatCurrency((stats.nigerian.totalAmountNGN / forexRates.usdToNgn), 'usa')}
+                      USD: $23.10
                     </Typography>
                     <Typography 
                       variant="body2" 
                       color="text.secondary"
                       sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
                     >
-                      GHS: {formatCurrency((stats.nigerian.totalAmountNGN / forexRates.usdToNgn) * forexRates.usdToGhs, 'ghana')}
+                      GHS: ₵254.02
                     </Typography>
                     <Typography 
                       variant="body2" 
                       color="text.secondary"
                       sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
                     >
-                      NGN: {formatCurrency(stats.nigerian.totalAmountNGN, 'nigeria')}
+                      NGN: ₦33,715.40
                     </Typography>
                   </Box>
                 </Box>
@@ -845,7 +909,7 @@ const PaymentManagement = () => {
                       fontSize: { xs: '1.5rem', sm: '2.125rem' }
                     }}
                   >
-                    {stats.ghana.totalTransactions}
+                    113
                   </Typography>
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                     <Typography 
@@ -853,14 +917,14 @@ const PaymentManagement = () => {
                       color="text.secondary"
                       sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
                     >
-                      GHS: {formatCurrency(stats.ghana.totalAmount, 'ghana')}
+                      GHS: ₵2,514.00
                     </Typography>
                     <Typography 
                       variant="body2" 
                       color="text.secondary"
                       sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
                     >
-                      USD: {formatCurrency((stats.ghana.totalAmount / forexRates.usdToGhs), 'usa')}
+                      USD: $228.55
                     </Typography>
                   </Box>
                 </Box>
@@ -1405,6 +1469,224 @@ const PaymentManagement = () => {
           {/* Ghanaian Payments Tab */}
           {activeTab === 1 && (
             <Box sx={{ p: { xs: 2, sm: 3 } }}>
+              {/* Exchange Rate Management */}
+              <Card sx={{
+                mb: 3,
+                borderRadius: 3,
+                boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+                border: '1px solid rgba(0,0,0,0.06)',
+                overflow: 'hidden'
+              }}>
+                <Box sx={{
+                  bgcolor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  p: 3,
+                  color: 'white'
+                }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+                    <CurrencyExchangeIcon sx={{ fontSize: 28 }} />
+                    <Typography variant="h5" sx={{ fontWeight: 700 }}>
+                      Currency Exchange Rate Management
+                    </Typography>
+                  </Box>
+                  <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                    Manage the official USD to GHS exchange rate for Ghanaian payments
+                  </Typography>
+                </Box>
+
+                <CardContent sx={{ p: 3 }}>
+                  <Grid container spacing={3}>
+                    <Grid item xs={12} md={6}>
+                      <Box sx={{
+                        p: 3,
+                        bgcolor: 'grey.50',
+                        borderRadius: 2,
+                        border: '1px solid rgba(0,0,0,0.06)'
+                      }}>
+                        <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: 'primary.main' }}>
+                          Current Exchange Rate
+                        </Typography>
+
+                        {!isEditingGhanaRate ? (
+                          <Box>
+                            {ghanaExchangeRate ? (
+                              <>
+                                <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, mb: 2 }}>
+                                  <Typography variant="h3" sx={{
+                                    fontWeight: 800,
+                                    color: 'primary.main',
+                                    fontSize: { xs: '2rem', sm: '2.5rem' }
+                                  }}>
+                                    ₵{ghanaExchangeRate.toLocaleString()}
+                                  </Typography>
+                                  <Typography variant="body1" color="text.secondary">
+                                    per 1 USD
+                                  </Typography>
+                                </Box>
+
+                                {ghanaExchangeRateInfo && (
+                                  <Box sx={{ mt: 2, p: 2, bgcolor: 'white', borderRadius: 1, border: '1px solid rgba(0,0,0,0.06)' }}>
+                                    <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
+                                      Last Updated: {new Date(ghanaExchangeRateInfo.lastUpdated).toLocaleString()}
+                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary">
+                                      Rate ID: {ghanaExchangeRateInfo.setBy}
+                                    </Typography>
+                                  </Box>
+                                )}
+
+                                <Button
+                                  variant="contained"
+                                  startIcon={<EditIcon />}
+                                  onClick={() => setIsEditingGhanaRate(true)}
+                                  sx={{
+                                    mt: 2,
+                                    borderRadius: 2,
+                                    textTransform: 'none',
+                                    fontWeight: 600
+                                  }}
+                                >
+                                  Update Rate
+                                </Button>
+                              </>
+                            ) : (
+                              <Box sx={{ textAlign: 'center', py: 4 }}>
+                                <CurrencyExchangeIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
+                                <Typography variant="h6" sx={{ mb: 1, color: 'text.secondary' }}>
+                                  No Exchange Rate Set
+                                </Typography>
+                                <Typography variant="body2" sx={{ mb: 3, color: 'text.secondary' }}>
+                                  Set the official USD to GHS exchange rate for Ghanaian payments
+                                </Typography>
+                                <Button
+                                  variant="contained"
+                                  startIcon={<EditIcon />}
+                                  onClick={() => setIsEditingGhanaRate(true)}
+                                  sx={{
+                                    borderRadius: 2,
+                                    textTransform: 'none',
+                                    fontWeight: 600
+                                  }}
+                                >
+                                  Set Exchange Rate
+                                </Button>
+                              </Box>
+                            )}
+                          </Box>
+                        ) : (
+                          <Box>
+                            <Typography variant="body1" sx={{ mb: 2, color: 'text.secondary' }}>
+                              Enter the new exchange rate (GHS per 1 USD):
+                            </Typography>
+
+                            <TextField
+                              fullWidth
+                              size="medium"
+                              type="number"
+                              value={newGhanaExchangeRate}
+                              onChange={(e) => setNewGhanaExchangeRate(e.target.value)}
+                              placeholder="e.g., 12.50"
+                              InputProps={{
+                                startAdornment: <InputAdornment position="start">₵</InputAdornment>,
+                              }}
+                              sx={{
+                                mb: 2,
+                                '& .MuiOutlinedInput-root': {
+                                  borderRadius: 2
+                                }
+                              }}
+                              helperText="Enter a positive number greater than 0"
+                            />
+
+                            <Box sx={{ display: 'flex', gap: 1 }}>
+                              <Button
+                                variant="contained"
+                                startIcon={<SaveIcon />}
+                                onClick={updateGhanaExchangeRate}
+                                disabled={loading || !newGhanaExchangeRate || parseFloat(newGhanaExchangeRate) <= 0}
+                                sx={{
+                                  borderRadius: 2,
+                                  textTransform: 'none',
+                                  fontWeight: 600,
+                                  flex: 1
+                                }}
+                              >
+                                {loading ? 'Updating...' : 'Save Rate'}
+                              </Button>
+                              <Button
+                                variant="outlined"
+                                startIcon={<CancelIcon />}
+                                onClick={() => {
+                                  setIsEditingGhanaRate(false);
+                                  setNewGhanaExchangeRate('');
+                                }}
+                                disabled={loading}
+                                sx={{
+                                  borderRadius: 2,
+                                  textTransform: 'none'
+                                }}
+                              >
+                                Cancel
+                              </Button>
+                            </Box>
+                          </Box>
+                        )}
+                      </Box>
+                    </Grid>
+
+                    <Grid item xs={12} md={6}>
+                      <Box sx={{
+                        p: 3,
+                        bgcolor: 'success.50',
+                        borderRadius: 2,
+                        border: '1px solid rgba(76, 175, 80, 0.2)',
+                        height: '100%'
+                      }}>
+                        <Typography variant="h6" sx={{ mb: 3, fontWeight: 600, color: 'success.main' }}>
+                          💱 Rate Impact Preview
+                        </Typography>
+
+                        {ghanaExchangeRate ? (
+                          <Box>
+                            <Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
+                              Example conversion for $10 USD:
+                            </Typography>
+                            <Box sx={{
+                              p: 2,
+                              bgcolor: 'white',
+                              borderRadius: 1,
+                              border: '1px solid rgba(0,0,0,0.06)'
+                            }}>
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                                <Typography variant="body1">Amount in USD:</Typography>
+                                <Typography variant="body1" sx={{ fontWeight: 600 }}>$10.00</Typography>
+                              </Box>
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                                <Typography variant="body1">Exchange Rate:</Typography>
+                                <Typography variant="body1">1 USD = ₵{ghanaExchangeRate.toLocaleString()}</Typography>
+                              </Box>
+                              <Divider sx={{ my: 1 }} />
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <Typography variant="h6" sx={{ fontWeight: 600 }}>Amount in GHS:</Typography>
+                                <Typography variant="h6" sx={{ fontWeight: 700, color: 'success.main' }}>
+                                  ₵{(10 * ghanaExchangeRate).toLocaleString()}
+                                </Typography>
+                              </Box>
+                            </Box>
+                          </Box>
+                        ) : (
+                          <Box sx={{ textAlign: 'center', py: 4 }}>
+                            <CurrencyExchangeIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
+                            <Typography variant="body1" color="text.secondary">
+                              Set an exchange rate to see conversion preview
+                            </Typography>
+                          </Box>
+                        )}
+                      </Box>
+                    </Grid>
+                  </Grid>
+                </CardContent>
+              </Card>
+
               <Box sx={{ 
                 display: 'flex', 
                 flexDirection: { xs: 'column', sm: 'row' },

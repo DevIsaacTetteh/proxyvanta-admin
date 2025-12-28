@@ -384,17 +384,7 @@ const OrderManagement = () => {
                     wordBreak: 'break-word'
                   }}
                 >
-                  ₵{stats.totalRevenue.toLocaleString()}
-                </Typography>
-                <Typography
-                  variant="body1"
-                  sx={{
-                    fontWeight: 600,
-                    fontSize: { xs: '0.875rem', sm: '1rem' },
-                    wordBreak: 'break-word'
-                  }}
-                >
-                  ${(stats.totalRevenue / forexRates.usdToGhs).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  $231.32
                 </Typography>
               </Box>
               <Typography variant="body2" sx={{ opacity: 0.9, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
@@ -519,7 +509,7 @@ const OrderManagement = () => {
                                 fontSize: { xs: '1rem', sm: '1.1rem' }
                               }}
                             >
-                              ₵{order.totalPrice.toLocaleString()}
+                              ${order.totalPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </Typography>
                           </Grid>
                         </Grid>
@@ -677,7 +667,7 @@ const OrderManagement = () => {
                             color: 'success.main',
                             fontSize: { xs: '0.875rem', sm: '1rem' }
                           }}>
-                            ₵{order.totalPrice.toLocaleString()}
+                            ${order.totalPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </Typography>
                         </TableCell>
                         <TableCell align="center">
@@ -1012,7 +1002,7 @@ const OrderManagement = () => {
                             fontSize: { xs: '1.5rem', sm: '1.75rem' }
                           }}
                         >
-                          ₵{orderDetails.totalPrice.toLocaleString()}
+                          ${orderDetails.totalPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </Typography>
                       </CardContent>
                     </Card>

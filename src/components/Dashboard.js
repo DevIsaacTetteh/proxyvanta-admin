@@ -48,10 +48,10 @@ const Dashboard = () => {
   });
   const [pricing, setPricing] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [dollarRate, setDollarRate] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(new Date());
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [ghanaExchangeRate, setGhanaExchangeRate] = useState(null);
 
   useEffect(() => {
     fetchStats();
@@ -69,7 +69,7 @@ const Dashboard = () => {
   const fetchStats = async () => {
     try {
       setRefreshing(true);
-      const [dashboardRes, depositsRes, spentRes, ipStatsRes, topIPTiersRes, topUsersRes, pricingRes, dollarRateRes] = await Promise.all([
+      const [dashboardRes, depositsRes, spentRes, ipStatsRes, topIPTiersRes, topUsersRes, pricingRes, exchangeRateRes] = await Promise.all([
         api.get('/admin/dashboard'),
         api.get('/admin/stats/deposits'),
         api.get('/admin/stats/spent'),
@@ -77,7 +77,7 @@ const Dashboard = () => {
         api.get('/admin/stats/top-ip-tiers?limit=5'),
         api.get('/admin/stats/top-users?limit=5'),
         api.get('/admin/pricing'),
-        api.get('/admin/dollar-rate').catch(() => ({ data: { rate: 12.00 } })) // Default rate if not set
+        api.get('/admin/ghana-payments/exchange-rate').catch(() => ({ data: { rate: null } }))
       ]);
 
       setStats({
@@ -94,7 +94,7 @@ const Dashboard = () => {
         topUsers: topUsersRes.data.topUsers
       });
       setPricing(pricingRes.data.pricings || []);
-      setDollarRate(dollarRateRes.data.rate);
+      setGhanaExchangeRate(exchangeRateRes.data.rate);
       setLastUpdated(new Date());
     } catch (error) {
       console.error('Failed to fetch dashboard stats:', error);
@@ -172,20 +172,32 @@ const Dashboard = () => {
           </Box>
         </Box>
         {values ? (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
             {values.map((currencyValue, index) => (
-              <Typography
-                key={index}
-                variant="body1"
-                sx={{
-                  fontWeight: 600,
-                  fontSize: { xs: '0.875rem', sm: '1rem', md: '1.125rem' },
-                  lineHeight: 1.2,
-                  wordBreak: 'break-word'
-                }}
-              >
-                {currencyValue}
-              </Typography>
+              <Box key={index} sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5 }}>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    fontWeight: 500,
+                    fontSize: { xs: '0.75rem', sm: '0.8rem' },
+                    opacity: 0.9,
+                    minWidth: '35px'
+                  }}
+                >
+                  {currencyValue.split(' ')[0]}
+                </Typography>
+                <Typography
+                  variant="body1"
+                  sx={{
+                    fontWeight: 700,
+                    fontSize: { xs: '0.875rem', sm: '1rem', md: '1.125rem' },
+                    lineHeight: 1.2,
+                    wordBreak: 'break-word'
+                  }}
+                >
+                  {currencyValue.split(' ').slice(1).join(' ')}
+                </Typography>
+              </Box>
             ))}
           </Box>
         ) : (
@@ -426,8 +438,8 @@ const Dashboard = () => {
           <StatCard
             title="Total Deposits"
             values={[
-              `GHS ${(stats.totalDeposits || 0).toLocaleString()}`,
-              `USD ${((stats.totalDeposits || 0) / dollarRate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+              `USD ${(stats.totalDeposits || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+              ghanaExchangeRate ? `GHS ${((stats.totalDeposits || 0) * ghanaExchangeRate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'GHS Rate not set'
             ]}
             icon={<DepositsIcon />}
             bgColor="#7b1fa2"
@@ -438,8 +450,8 @@ const Dashboard = () => {
           <StatCard
             title="Total Spent"
             values={[
-              `GHS ${(stats.totalSpent || 0).toLocaleString()}`,
-              `USD ${((stats.totalSpent || 0) / dollarRate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+              `USD ${(stats.totalSpent || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+              ghanaExchangeRate ? `GHS ${((stats.totalSpent || 0) * ghanaExchangeRate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'GHS Rate not set'
             ]}
             icon={<SpentIcon />}
             bgColor="#d32f2f"
@@ -667,123 +679,67 @@ const Dashboard = () => {
               </Typography>
             </Box>
 
+            <Typography 
+              variant="body2" 
+              color="text.secondary" 
+              sx={{ 
+                mb: 3,
+                fontSize: { xs: '0.75rem', sm: '0.875rem' }
+              }}
+            >
+              All prices are displayed in USD. Users see these exact prices on the purchase page.
+            </Typography>
+
             {pricing.length > 0 ? (
-              <Grid container spacing={{ xs: 1.5, sm: 2 }}>
-                {pricing.map((tier) => {
-                  const totalPrice = tier.max * tier.price;
-                  return (
-                    <Grid item xs={6} sm={4} md={3} lg={2} key={tier._id || tier.range}>
-                      <Card
-                        sx={{
-                          border: '2px solid #c8e6c9',
-                          bgcolor: 'linear-gradient(135deg, #f1f8e9 0%, #dcedc8 100%)',
-                          background: 'linear-gradient(135deg, #f1f8e9 0%, #dcedc8 100%)',
-                          transition: 'all 0.3s ease',
-                          cursor: 'pointer',
-                          position: 'relative',
-                          overflow: 'hidden',
-                          '&::before': {
-                            content: '""',
-                            position: 'absolute',
-                            top: 0,
-                            right: 0,
-                            width: '60px',
-                            height: '60px',
-                            background: 'rgba(76, 175, 80, 0.1)',
-                            borderRadius: '50%',
-                            transform: 'translate(20px, -20px)'
-                          },
-                          '&:hover': {
-                            transform: 'translateY(-4px)',
-                            boxShadow: '0 6px 20px rgba(46, 125, 50, 0.2)',
-                            borderColor: '#66bb6a'
-                          }
+              <Grid container spacing={{ xs: 1, sm: 2 }}>
+                {pricing.map((tier, index) => (
+                  <Grid item xs={12} sm={6} md={4} key={tier._id || tier.range}>
+                    <Card
+                      sx={{
+                        p: { xs: 1.5, sm: 2 },
+                        borderRadius: 2,
+                        bgcolor: '#fafafa',
+                        border: '1px solid #e0e0e0',
+                        transition: 'all 0.2s ease-in-out',
+                        '&:hover': {
+                          transform: 'translateY(-2px)',
+                          boxShadow: 2
+                        }
+                      }}
+                    >
+                      <Typography 
+                        variant="subtitle1" 
+                        sx={{ 
+                          fontWeight: 600, 
+                          mb: 1,
+                          fontSize: { xs: '0.875rem', sm: '1rem' }
                         }}
                       >
-                        <CardContent sx={{ p: { xs: 1.5, sm: 2 }, textAlign: 'center', position: 'relative', zIndex: 1 }}>
-                          <Typography
-                            variant="h5"
-                            sx={{
-                              fontWeight: 700,
-                              color: '#2e7d32',
-                              mb: 0.5,
-                              fontSize: { xs: '1.1rem', sm: '1.3rem' }
-                            }}
-                          >
-                            {tier.max}IP
-                          </Typography>
-                          <Chip
-                            label={`₵${tier.price}/IP`}
-                            size="small"
-                            sx={{
-                              bgcolor: '#4caf50',
-                              color: 'white',
-                              fontWeight: 600,
-                              fontSize: { xs: '0.65rem', sm: '0.7rem' },
-                              mb: 1,
-                              height: { xs: 20, sm: 24 }
-                            }}
-                          />
-                          {dollarRate && (
-                            <Chip
-                              label={`$${(tier.price / dollarRate).toFixed(2)}/IP`}
-                              size="small"
-                              sx={{
-                                bgcolor: '#1976d2',
-                                color: 'white',
-                                fontWeight: 600,
-                                fontSize: { xs: '0.6rem', sm: '0.65rem' },
-                                mb: 1,
-                                height: { xs: 18, sm: 20 }
-                              }}
-                            />
-                          )}
-                          <Box
-                            sx={{
-                              bgcolor: 'rgba(46, 125, 50, 0.1)',
-                              borderRadius: 2,
-                              p: { xs: 0.75, sm: 1 },
-                              border: '1px solid rgba(46, 125, 50, 0.2)'
-                            }}
-                          >
-                            <Typography
-                              variant="h6"
-                              sx={{
-                                fontWeight: 700,
-                                color: '#1b5e20',
-                                fontSize: { xs: '1rem', sm: '1.1rem' }
-                              }}
-                            >
-                              ₵{totalPrice.toFixed(2)}
-                            </Typography>
-                            {dollarRate && (
-                              <Typography
-                                variant="body2"
-                                sx={{
-                                  fontWeight: 600,
-                                  color: '#1976d2',
-                                  fontSize: { xs: '0.75rem', sm: '0.8rem' }
-                                }}
-                              >
-                                ${(totalPrice / dollarRate).toFixed(2)} USD
-                              </Typography>
-                            )}
-                            <Typography
-                              variant="caption"
-                              color="text.secondary"
-                              sx={{
-                                fontSize: { xs: '0.65rem', sm: '0.7rem' },
-                                fontWeight: 500
-                              }}
-                            >
-                              Total Price
-                            </Typography>
-                          </Box>
-                        </CardContent>
-                      </Card>
-                    </Grid>
-                  );
-                })}
+                        {tier.range}
+                      </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                        <MonetizationOn sx={{ color: '#1976d2', fontSize: '1.2rem' }} />
+                        <Typography 
+                          variant="h5" 
+                          sx={{ 
+                            fontWeight: 700, 
+                            color: '#1976d2',
+                            fontSize: { xs: '1.25rem', sm: '1.5rem', md: '1.75rem' }
+                          }}
+                        >
+                          ${tier.price.toFixed(2)}
+                        </Typography>
+                      </Box>
+                      <Typography 
+                        variant="body2" 
+                        color="text.secondary"
+                        sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
+                      >
+                        Total price for {tier.min} proxies
+                      </Typography>
+                    </Card>
+                  </Grid>
+                ))}
               </Grid>
             ) : (
               <Box sx={{ textAlign: 'center', py: { xs: 3, sm: 4 } }}>
@@ -1022,7 +978,7 @@ const Dashboard = () => {
                       color="text.secondary"
                       sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
                     >
-                      Revenue Generated: GHS {((stats.totalSpent || 0) * 0.1).toLocaleString()} (estimated)
+                      Revenue Generated: {ghanaExchangeRate ? `GHS ${((stats.totalSpent || 0) * ghanaExchangeRate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'GHS Rate not set'} (estimated)
                     </Typography>
                   </Box>
                   <Box sx={{ display: 'flex', alignItems: 'center' }}>
