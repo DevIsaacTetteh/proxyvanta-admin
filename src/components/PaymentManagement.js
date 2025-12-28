@@ -38,7 +38,8 @@ const PaymentManagement = () => {
   const [ghanaTransactions, setGhanaTransactions] = useState([]);
   const [stats, setStats] = useState({
     nigerian: { totalTransactions: 0, totalAmount: 0, totalAmountNGN: 0, todayTransactions: 0 },
-    ghana: { totalTransactions: 0, totalAmount: 0, todayTransactions: 0 }
+    ghana: { totalTransactions: 0, totalAmount: 0, todayTransactions: 0 },
+    crypto: { totalTransactions: 0, totalAmount: 0, todayTransactions: 0 }
   });
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -50,6 +51,13 @@ const PaymentManagement = () => {
     transaction: null,
     newAmount: '',
     country: ''
+  });
+
+  // Forex rates for Nigerian payments display
+  const [forexRates, setForexRates] = useState({
+    usdToNgn: 1620, // Fallback NGN rate
+    usdToGhs: 12,   // Fallback GHS rate
+    lastUpdated: null
   });
 
   // Filter states
@@ -71,9 +79,20 @@ const PaymentManagement = () => {
     endDate: ''
   });
 
+  const [cryptoTransactions, setCryptoTransactions] = useState([]);
+  const [cryptoFilters, setCryptoFilters] = useState({
+    status: '',
+    userEmail: '',
+    minAmount: '',
+    maxAmount: '',
+    startDate: '',
+    endDate: ''
+  });
+
   const [filtersExpanded, setFiltersExpanded] = useState({
     nigerian: false,
-    ghana: false
+    ghana: false,
+    crypto: false
   });
 
   const fetchExchangeRate = useCallback(async () => {
@@ -97,6 +116,28 @@ const PaymentManagement = () => {
       }
     }
   }, []);
+
+  const fetchForexRates = async () => {
+    try {
+      // Using exchangerate-api.com for free forex rates
+      const response = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
+      const data = await response.json();
+
+      setForexRates({
+        usdToNgn: data.rates.NGN,
+        usdToGhs: data.rates.GHS,
+        lastUpdated: new Date()
+      });
+    } catch (error) {
+      console.error('Failed to fetch forex rates:', error);
+      // Fallback to approximate rates if API fails
+      setForexRates({
+        usdToNgn: 1620, // Approximate NGN rate
+        usdToGhs: 12,   // Approximate GHS rate
+        lastUpdated: new Date()
+      });
+    }
+  };
 
   const fetchNigerianTransactions = useCallback(async (filters = nigerianFilters) => {
     try {
@@ -142,17 +183,40 @@ const PaymentManagement = () => {
     }
   }, [ghanaFilters]);
 
+  const fetchCryptoTransactions = useCallback(async (filters = cryptoFilters) => {
+    try {
+      // Build query parameters
+      const params = new URLSearchParams();
+      if (filters.status) params.append('status', filters.status);
+      if (filters.userEmail) params.append('userEmail', filters.userEmail);
+      if (filters.minAmount) params.append('minAmount', filters.minAmount);
+      if (filters.maxAmount) params.append('maxAmount', filters.maxAmount);
+      if (filters.startDate) params.append('startDate', filters.startDate);
+      if (filters.endDate) params.append('endDate', filters.endDate);
+
+      const queryString = params.toString();
+      const url = `/admin/crypto-payments/transactions${queryString ? `?${queryString}` : ''}`;
+
+      const response = await api.get(url);
+      setCryptoTransactions(response.data.transactions || []);
+    } catch (error) {
+      console.error('Failed to fetch crypto transactions:', error);
+      showSnackbar('Failed to fetch crypto transactions', 'error');
+    }
+  }, [cryptoFilters]);
+
   const fetchStats = useCallback(async () => {
     try {
-      const [nigeriaStats, ghanaStats] = await Promise.all([
+      const [nigeriaStats, ghanaStats, cryptoStats] = await Promise.all([
         api.get('/admin/nigerian-payments/stats'),
-        api.get('/admin/ghana-payments/stats')
+        api.get('/admin/ghana-payments/stats'),
+        api.get('/admin/crypto-payments/stats')
       ]);
 
       setStats({
         nigerian: {
           totalTransactions: nigeriaStats.data.stats.totalTransactions || 0,
-          totalAmount: nigeriaStats.data.stats.totalAmountGHS || 0,
+          totalAmount: nigeriaStats.data.stats.totalAmountUSD || 0,
           totalAmountNGN: nigeriaStats.data.stats.totalAmountNGN || 0,
           todayTransactions: nigeriaStats.data.stats.todayTransactions || 0
         },
@@ -160,6 +224,11 @@ const PaymentManagement = () => {
           totalTransactions: ghanaStats.data.stats.totalTransactions || 0,
           totalAmount: ghanaStats.data.stats.totalAmount || 0,
           todayTransactions: ghanaStats.data.stats.todayTransactions || 0
+        },
+        crypto: {
+          totalTransactions: cryptoStats.data.stats.totalTransactions || 0,
+          totalAmount: cryptoStats.data.stats.totalAmount || 0,
+          todayTransactions: cryptoStats.data.stats.todayTransactions || 0
         }
       });
     } catch (error) {
@@ -172,6 +241,14 @@ const PaymentManagement = () => {
     fetchNigerianTransactions();
     fetchGhanaTransactions();
     fetchStats();
+    fetchForexRates(); // Fetch initial forex rates
+
+    // Set up periodic forex rate updates every 5 minutes
+    const forexInterval = setInterval(fetchForexRates, 5 * 60 * 1000);
+
+    return () => {
+      clearInterval(forexInterval);
+    };
   }, [fetchExchangeRate, fetchNigerianTransactions, fetchGhanaTransactions, fetchStats]);
 
   // Auto-apply filters when they change
@@ -272,9 +349,44 @@ const PaymentManagement = () => {
     });
   };
 
+  const handleCryptoFilterChange = (field, value) => {
+    setCryptoFilters(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const applyCryptoFilters = () => {
+    fetchCryptoTransactions(cryptoFilters);
+  };
+
+  const clearCryptoFilters = () => {
+    setCryptoFilters({
+      status: '',
+      userEmail: '',
+      minAmount: '',
+      maxAmount: '',
+      startDate: '',
+      endDate: ''
+    });
+    fetchCryptoTransactions({
+      status: '',
+      userEmail: '',
+      minAmount: '',
+      maxAmount: '',
+      startDate: '',
+      endDate: ''
+    });
+  };
+
   const handleEditAmount = (transaction, country) => {
-    const displayAmount = country === 'nigeria' && transaction.convertedAmount
-      ? transaction.convertedAmount
+    if (country === 'crypto') {
+      showSnackbar('Crypto transaction amounts cannot be edited', 'warning');
+      return;
+    }
+
+    const displayAmount = country === 'nigeria' && transaction.ngnAmount
+      ? transaction.ngnAmount
       : transaction.amount;
 
     setEditDialog({
@@ -294,7 +406,9 @@ const PaymentManagement = () => {
     try {
       const endpoint = editDialog.country === 'nigeria'
         ? `/admin/nigerian-payments/transaction/${editDialog.transaction._id}`
-        : `/admin/ghana-payments/transaction/${editDialog.transaction._id}`;
+        : editDialog.country === 'ghana'
+        ? `/admin/ghana-payments/transaction/${editDialog.transaction._id}`
+        : `/admin/crypto-payments/transaction/${editDialog.transaction._id}`;
 
       await api.put(endpoint, {
         amount: parseFloat(editDialog.newAmount)
@@ -303,8 +417,10 @@ const PaymentManagement = () => {
       // Refresh transactions
       if (editDialog.country === 'nigeria') {
         fetchNigerianTransactions();
-      } else {
+      } else if (editDialog.country === 'ghana') {
         fetchGhanaTransactions();
+      } else {
+        fetchCryptoTransactions();
       }
 
       setEditDialog({ open: false, transaction: null, newAmount: '', country: '' });
@@ -319,15 +435,19 @@ const PaymentManagement = () => {
     try {
       const endpoint = country === 'nigeria'
         ? `/admin/nigerian-payments/transaction/${transactionId}/approve`
-        : `/admin/ghana-payments/transaction/${transactionId}/approve`;
+        : country === 'ghana'
+        ? `/admin/ghana-payments/transaction/${transactionId}/approve`
+        : `/admin/crypto-payments/transaction/${transactionId}/approve`;
 
       await api.put(endpoint);
 
       // Refresh transactions
       if (country === 'nigeria') {
         fetchNigerianTransactions();
-      } else {
+      } else if (country === 'ghana') {
         fetchGhanaTransactions();
+      } else {
+        fetchCryptoTransactions();
       }
 
       showSnackbar('Payment approved successfully', 'success');
@@ -341,15 +461,19 @@ const PaymentManagement = () => {
     try {
       const endpoint = country === 'nigeria'
         ? `/admin/nigerian-payments/transaction/${transactionId}/disapprove`
-        : `/admin/ghana-payments/transaction/${transactionId}/disapprove`;
+        : country === 'ghana'
+        ? `/admin/ghana-payments/transaction/${transactionId}/disapprove`
+        : `/admin/crypto-payments/transaction/${transactionId}/disapprove`;
 
       await api.put(endpoint);
 
       // Refresh transactions
       if (country === 'nigeria') {
         fetchNigerianTransactions();
-      } else {
+      } else if (country === 'ghana') {
         fetchGhanaTransactions();
+      } else {
+        fetchCryptoTransactions();
       }
 
       showSnackbar('Payment disapproved successfully', 'success');
@@ -367,15 +491,19 @@ const PaymentManagement = () => {
     try {
       const endpoint = country === 'nigeria'
         ? `/admin/nigerian-payments/transaction/${transactionId}`
-        : `/admin/ghana-payments/transaction/${transactionId}`;
+        : country === 'ghana'
+        ? `/admin/ghana-payments/transaction/${transactionId}`
+        : `/admin/crypto-payments/transaction/${transactionId}`;
 
       await api.delete(endpoint);
 
       // Refresh transactions
       if (country === 'nigeria') {
         fetchNigerianTransactions();
-      } else {
+      } else if (country === 'ghana') {
         fetchGhanaTransactions();
+      } else {
+        fetchCryptoTransactions();
       }
 
       showSnackbar('Payment deleted successfully', 'success');
@@ -390,6 +518,12 @@ const PaymentManagement = () => {
   };
 
   const formatCurrency = (amount, country) => {
+    if (country === 'crypto' || country === 'usa') {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD'
+      }).format(amount);
+    }
     return new Intl.NumberFormat(country === 'nigeria' ? 'en-NG' : 'en-GH', {
       style: 'currency',
       currency: country === 'nigeria' ? 'NGN' : 'GHS'
@@ -503,8 +637,8 @@ const PaymentManagement = () => {
                 </TableCell>
                 <TableCell sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
                   <Typography variant="body2" sx={{ fontWeight: 600, color: 'primary.main' }}>
-                    {country === 'nigeria' && transaction.convertedAmount
-                      ? formatCurrency(transaction.convertedAmount, 'nigeria')
+                    {country === 'nigeria' && transaction.ngnAmount
+                      ? formatCurrency(transaction.ngnAmount, 'nigeria')
                       : formatCurrency(transaction.amount, country)
                     }
                   </Typography>
@@ -541,11 +675,12 @@ const PaymentManagement = () => {
                         size="small"
                         onClick={() => handleEditAmount(transaction, country)}
                         sx={{ color: 'primary.main' }}
+                        disabled={country === 'crypto'} // Disable editing for crypto transactions
                       >
                         <EditIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
-                    {transaction.status !== 'completed' && (
+                    {transaction.status !== 'completed' && country !== 'crypto' && (
                       <Tooltip title="Approve">
                         <IconButton
                           size="small"
@@ -556,7 +691,7 @@ const PaymentManagement = () => {
                         </IconButton>
                       </Tooltip>
                     )}
-                    {transaction.status !== 'failed' && (
+                    {transaction.status !== 'failed' && country !== 'crypto' && (
                       <Tooltip title="Disapprove">
                         <IconButton
                           size="small"
@@ -611,7 +746,7 @@ const PaymentManagement = () => {
 
       {/* Stats Cards */}
       <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ mb: { xs: 3, sm: 4 } }}>
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12} md={4}>
           <Card sx={{ borderRadius: 3, boxShadow: 2 }}>
             <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
               <Box sx={{ 
@@ -644,13 +779,29 @@ const PaymentManagement = () => {
                   >
                     {stats.nigerian.totalTransactions}
                   </Typography>
-                  <Typography 
-                    variant="body2" 
-                    color="text.secondary"
-                    sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
-                  >
-                    Total: {formatCurrency(stats.nigerian.totalAmount, 'ghana')}
-                  </Typography>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                    <Typography 
+                      variant="body2" 
+                      color="text.secondary"
+                      sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
+                    >
+                      USD: {formatCurrency((stats.nigerian.totalAmountNGN / forexRates.usdToNgn), 'usa')}
+                    </Typography>
+                    <Typography 
+                      variant="body2" 
+                      color="text.secondary"
+                      sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
+                    >
+                      GHS: {formatCurrency((stats.nigerian.totalAmountNGN / forexRates.usdToNgn) * forexRates.usdToGhs, 'ghana')}
+                    </Typography>
+                    <Typography 
+                      variant="body2" 
+                      color="text.secondary"
+                      sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
+                    >
+                      NGN: {formatCurrency(stats.nigerian.totalAmountNGN, 'nigeria')}
+                    </Typography>
+                  </Box>
                 </Box>
                 <Avatar sx={{ 
                   bgcolor: 'primary.main', 
@@ -663,7 +814,7 @@ const PaymentManagement = () => {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12} md={4}>
           <Card sx={{ borderRadius: 3, boxShadow: 2 }}>
             <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
               <Box sx={{ 
@@ -696,13 +847,22 @@ const PaymentManagement = () => {
                   >
                     {stats.ghana.totalTransactions}
                   </Typography>
-                  <Typography 
-                    variant="body2" 
-                    color="text.secondary"
-                    sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
-                  >
-                    Total: {formatCurrency(stats.ghana.totalAmount, 'ghana')}
-                  </Typography>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                    <Typography 
+                      variant="body2" 
+                      color="text.secondary"
+                      sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
+                    >
+                      GHS: {formatCurrency(stats.ghana.totalAmount, 'ghana')}
+                    </Typography>
+                    <Typography 
+                      variant="body2" 
+                      color="text.secondary"
+                      sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
+                    >
+                      USD: {formatCurrency((stats.ghana.totalAmount / forexRates.usdToGhs), 'usa')}
+                    </Typography>
+                  </Box>
                 </Box>
                 <Avatar sx={{ 
                   bgcolor: 'primary.main', 
@@ -710,6 +870,67 @@ const PaymentManagement = () => {
                   height: { xs: 48, sm: 56 }
                 }}>
                   <PaymentIcon />
+                </Avatar>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} md={4}>
+          <Card sx={{ borderRadius: 3, boxShadow: 2 }}>
+            <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'space-between',
+                flexDirection: { xs: 'column', sm: 'row' },
+                gap: { xs: 2, sm: 0 },
+                textAlign: { xs: 'center', sm: 'left' }
+              }}>
+                <Box>
+                  <Typography 
+                    variant="h6" 
+                    sx={{ 
+                      fontWeight: 700, 
+                      color: 'primary.main', 
+                      mb: 1,
+                      fontSize: { xs: '1rem', sm: '1.25rem' }
+                    }}
+                  >
+                    ₿ Crypto Payments
+                  </Typography>
+                  <Typography 
+                    variant="h4" 
+                    sx={{ 
+                      fontWeight: 800, 
+                      mb: 1,
+                      fontSize: { xs: '1.5rem', sm: '2.125rem' }
+                    }}
+                  >
+                    {stats.crypto.totalTransactions}
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                    <Typography 
+                      variant="body2" 
+                      color="text.secondary"
+                      sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
+                    >
+                      GHS: {formatCurrency((stats.crypto.totalAmount * forexRates.usdToGhs), 'ghana')}
+                    </Typography>
+                    <Typography 
+                      variant="body2" 
+                      color="text.secondary"
+                      sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
+                    >
+                      USD: {formatCurrency(stats.crypto.totalAmount, 'crypto')}
+                    </Typography>
+                  </Box>
+                </Box>
+                <Avatar sx={{ 
+                  bgcolor: 'primary.main', 
+                  width: { xs: 48, sm: 56 }, 
+                  height: { xs: 48, sm: 56 }
+                }}>
+                  <AttachMoneyIcon />
                 </Avatar>
               </Box>
             </CardContent>
@@ -748,7 +969,7 @@ const PaymentManagement = () => {
                       Nigerian Payments
                     </Typography>
                     <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                      NGN Transactions
+                      USD Transactions
                     </Typography>
                   </Box>
                   <Box sx={{ display: { xs: 'block', sm: 'none' } }}>
@@ -784,6 +1005,31 @@ const PaymentManagement = () => {
                 </Box>
               }
             />
+            <Tab
+              label={
+                <Box sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: { xs: 0.5, sm: 1 },
+                  minWidth: { xs: 'auto', sm: '200px' }
+                }}>
+                  <Typography sx={{ fontSize: { xs: '1.2rem', sm: '1.5rem' } }}>₿</Typography>
+                  <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
+                    <Typography variant="body1" sx={{ fontWeight: 700, fontSize: { sm: '0.9rem' } }}>
+                      Crypto Payments
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                      USD Transactions
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: { xs: 'block', sm: 'none' } }}>
+                    <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.75rem' }}>
+                      Crypto
+                    </Typography>
+                  </Box>
+                </Box>
+              }
+            />
           </Tabs>
 
           {/* Nigerian Payments Tab */}
@@ -809,7 +1055,7 @@ const PaymentManagement = () => {
                     </Typography>
                   </Box>
                   <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                    Manage the official GHS to NGN exchange rate for Nigerian payments
+                    Manage the official USD to NGN exchange rate for Nigerian payments
                   </Typography>
                 </Box>
 
@@ -839,7 +1085,7 @@ const PaymentManagement = () => {
                                     ₦{exchangeRate.toLocaleString()}
                                   </Typography>
                                   <Typography variant="body1" color="text.secondary">
-                                    per 1 GHS
+                                    per 1 USD
                                   </Typography>
                                 </Box>
 
@@ -875,7 +1121,7 @@ const PaymentManagement = () => {
                                   No Exchange Rate Set
                                 </Typography>
                                 <Typography variant="body2" sx={{ mb: 3, color: 'text.secondary' }}>
-                                  Set the official GHS to NGN exchange rate for Nigerian payments
+                                  Set the official USD to NGN exchange rate for Nigerian payments
                                 </Typography>
                                 <Button
                                   variant="contained"
@@ -895,7 +1141,7 @@ const PaymentManagement = () => {
                         ) : (
                           <Box>
                             <Typography variant="body1" sx={{ mb: 2, color: 'text.secondary' }}>
-                              Enter the new exchange rate (NGN per 1 GHS):
+                              Enter the new exchange rate (NGN per 1 USD):
                             </Typography>
 
                             <TextField
@@ -968,7 +1214,7 @@ const PaymentManagement = () => {
                         {exchangeRate ? (
                           <Box>
                             <Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
-                              Example conversion for ₵100 GHS:
+                              Example conversion for $10 USD:
                             </Typography>
                             <Box sx={{
                               p: 2,
@@ -977,18 +1223,18 @@ const PaymentManagement = () => {
                               border: '1px solid rgba(0,0,0,0.06)'
                             }}>
                               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                                <Typography variant="body1">Amount in GHS:</Typography>
-                                <Typography variant="body1" sx={{ fontWeight: 600 }}>₵100.00</Typography>
+                                <Typography variant="body1">Amount in USD:</Typography>
+                                <Typography variant="body1" sx={{ fontWeight: 600 }}>$10.00</Typography>
                               </Box>
                               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                                 <Typography variant="body1">Exchange Rate:</Typography>
-                                <Typography variant="body1">1 GHS = ₦{exchangeRate.toLocaleString()}</Typography>
+                                <Typography variant="body1">1 USD = ₦{exchangeRate.toLocaleString()}</Typography>
                               </Box>
                               <Divider sx={{ my: 1 }} />
                               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                                 <Typography variant="h6" sx={{ fontWeight: 600 }}>Amount in NGN:</Typography>
                                 <Typography variant="h6" sx={{ fontWeight: 700, color: 'success.main' }}>
-                                  ₦{(100 * exchangeRate).toLocaleString()}
+                                  ₦{(10 * exchangeRate).toLocaleString()}
                                 </Typography>
                               </Box>
                             </Box>
@@ -1306,6 +1552,159 @@ const PaymentManagement = () => {
               {renderTransactionTable(ghanaTransactions, 'ghana')}
             </Box>
           )}
+
+          {/* Crypto Payments Tab */}
+          {activeTab === 2 && (
+            <Box sx={{ p: { xs: 2, sm: 3 } }}>
+              <Box sx={{ 
+                display: 'flex', 
+                flexDirection: { xs: 'column', sm: 'row' },
+                alignItems: { xs: 'flex-start', sm: 'center' },
+                justifyContent: { sm: 'space-between' }, 
+                mb: 2,
+                gap: { xs: 2, sm: 0 }
+              }}>
+                <Typography 
+                  variant="h6" 
+                  sx={{ 
+                    fontWeight: 700,
+                    fontSize: { xs: '1rem', sm: '1.25rem' }
+                  }}
+                >
+                  Crypto Payment Transactions
+                </Typography>
+                <Button
+                  variant="outlined"
+                  startIcon={<RefreshIcon />}
+                  onClick={fetchCryptoTransactions}
+                  size="small"
+                  sx={{ alignSelf: { xs: 'flex-end', sm: 'auto' } }}
+                >
+                  Refresh
+                </Button>
+              </Box>
+
+              {/* Crypto Filters */}
+              <Accordion
+                expanded={filtersExpanded.crypto}
+                onChange={() => setFiltersExpanded(prev => ({ ...prev, crypto: !prev.crypto }))}
+                sx={{ mb: 2, borderRadius: 2 }}
+              >
+                <AccordionSummary
+                  expandIcon={<ExpandMoreIcon />}
+                  sx={{ bgcolor: 'grey.50' }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <FilterIcon />
+                    <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                      Filter Crypto Transactions
+                    </Typography>
+                  </Box>
+                </AccordionSummary>
+                <AccordionDetails sx={{ p: { xs: 2, sm: 3 } }}>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} sm={6} md={3}>
+                      <FormControl fullWidth size="small">
+                        <InputLabel>Status</InputLabel>
+                        <Select
+                          value={cryptoFilters.status}
+                          onChange={(e) => handleCryptoFilterChange('status', e.target.value)}
+                          label="Status"
+                        >
+                          <MenuItem value="">All Status</MenuItem>
+                          <MenuItem value="pending">Pending</MenuItem>
+                          <MenuItem value="completed">Completed</MenuItem>
+                          <MenuItem value="failed">Failed</MenuItem>
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={3}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="User Email"
+                        value={cryptoFilters.userEmail}
+                        onChange={(e) => handleCryptoFilterChange('userEmail', e.target.value)}
+                        placeholder="user@example.com"
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={3}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="Min Amount (USD)"
+                        type="number"
+                        value={cryptoFilters.minAmount}
+                        onChange={(e) => handleCryptoFilterChange('minAmount', e.target.value)}
+                        placeholder="10"
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={3}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="Max Amount (USD)"
+                        type="number"
+                        value={cryptoFilters.maxAmount}
+                        onChange={(e) => handleCryptoFilterChange('maxAmount', e.target.value)}
+                        placeholder="1000"
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={3}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="Start Date"
+                        type="date"
+                        value={cryptoFilters.startDate}
+                        onChange={(e) => handleCryptoFilterChange('startDate', e.target.value)}
+                        InputLabelProps={{ shrink: true }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={3}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="End Date"
+                        type="date"
+                        value={cryptoFilters.endDate}
+                        onChange={(e) => handleCryptoFilterChange('endDate', e.target.value)}
+                        InputLabelProps={{ shrink: true }}
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <Box sx={{ 
+                        display: 'flex', 
+                        gap: 1, 
+                        justifyContent: { xs: 'center', sm: 'flex-end' },
+                        flexDirection: { xs: 'column', sm: 'row' }
+                      }}>
+                        <Button
+                          variant="outlined"
+                          startIcon={<ClearIcon />}
+                          onClick={clearCryptoFilters}
+                          size="small"
+                          fullWidth={{ xs: true, sm: false }}
+                        >
+                          Clear Filters
+                        </Button>
+                        <Button
+                          variant="contained"
+                          onClick={applyCryptoFilters}
+                          size="small"
+                          fullWidth={{ xs: true, sm: false }}
+                        >
+                          Apply Filters
+                        </Button>
+                      </Box>
+                    </Grid>
+                  </Grid>
+                </AccordionDetails>
+              </Accordion>
+
+              {renderTransactionTable(cryptoTransactions, 'crypto')}
+            </Box>
+          )}
         </CardContent>
       </Card>
 
@@ -1328,13 +1727,13 @@ const PaymentManagement = () => {
           px: { xs: 2, sm: 3 },
           py: { xs: 2, sm: 3 }
         }}>
-          Edit Payment Amount
+          Edit Payment Amount ({editDialog.country === 'nigeria' ? 'NGN' : 'GHS'})
         </DialogTitle>
         <DialogContent sx={{ px: { xs: 2, sm: 3 } }}>
           <TextField
             autoFocus
             margin="dense"
-            label="New Amount"
+            label={`New Amount (${editDialog.country === 'nigeria' ? 'NGN' : 'GHS'})`}
             type="number"
             fullWidth
             value={editDialog.newAmount}

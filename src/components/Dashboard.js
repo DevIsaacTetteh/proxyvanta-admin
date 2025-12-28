@@ -48,6 +48,7 @@ const Dashboard = () => {
   });
   const [pricing, setPricing] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [dollarRate, setDollarRate] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(new Date());
   const [autoRefresh, setAutoRefresh] = useState(true);
@@ -68,14 +69,15 @@ const Dashboard = () => {
   const fetchStats = async () => {
     try {
       setRefreshing(true);
-      const [dashboardRes, depositsRes, spentRes, ipStatsRes, topIPTiersRes, topUsersRes, pricingRes] = await Promise.all([
+      const [dashboardRes, depositsRes, spentRes, ipStatsRes, topIPTiersRes, topUsersRes, pricingRes, dollarRateRes] = await Promise.all([
         api.get('/admin/dashboard'),
         api.get('/admin/stats/deposits'),
         api.get('/admin/stats/spent'),
         api.get('/pia/stats'),
         api.get('/admin/stats/top-ip-tiers?limit=5'),
         api.get('/admin/stats/top-users?limit=5'),
-        api.get('/admin/pricing')
+        api.get('/admin/pricing'),
+        api.get('/admin/dollar-rate').catch(() => ({ data: { rate: 12.00 } })) // Default rate if not set
       ]);
 
       setStats({
@@ -92,6 +94,7 @@ const Dashboard = () => {
         topUsers: topUsersRes.data.topUsers
       });
       setPricing(pricingRes.data.pricings || []);
+      setDollarRate(dollarRateRes.data.rate);
       setLastUpdated(new Date());
     } catch (error) {
       console.error('Failed to fetch dashboard stats:', error);
@@ -101,7 +104,7 @@ const Dashboard = () => {
     }
   };
 
-  const StatCard = ({ title, value, icon, color, bgColor, subtitle }) => (
+  const StatCard = ({ title, value, values, icon, color, bgColor, subtitle }) => (
     <Card
       sx={{
         height: '100%',
@@ -168,17 +171,36 @@ const Dashboard = () => {
             )}
           </Box>
         </Box>
-        <Typography
-          variant="h4"
-          sx={{
-            fontWeight: 700,
-            fontSize: { xs: '1.5rem', sm: '1.75rem', md: '2rem' },
-            lineHeight: 1.2,
-            wordBreak: 'break-word'
-          }}
-        >
-          {value}
-        </Typography>
+        {values ? (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+            {values.map((currencyValue, index) => (
+              <Typography
+                key={index}
+                variant="body1"
+                sx={{
+                  fontWeight: 600,
+                  fontSize: { xs: '0.875rem', sm: '1rem', md: '1.125rem' },
+                  lineHeight: 1.2,
+                  wordBreak: 'break-word'
+                }}
+              >
+                {currencyValue}
+              </Typography>
+            ))}
+          </Box>
+        ) : (
+          <Typography
+            variant="h4"
+            sx={{
+              fontWeight: 700,
+              fontSize: { xs: '1.5rem', sm: '1.75rem', md: '2rem' },
+              lineHeight: 1.2,
+              wordBreak: 'break-word'
+            }}
+          >
+            {value}
+          </Typography>
+        )}
       </CardContent>
     </Card>
   );
@@ -403,7 +425,10 @@ const Dashboard = () => {
         <Grid item xs={12} sm={6} lg={3}>
           <StatCard
             title="Total Deposits"
-            value={`GHS ${(stats.totalDeposits || 0).toLocaleString()}`}
+            values={[
+              `GHS ${(stats.totalDeposits || 0).toLocaleString()}`,
+              `USD ${((stats.totalDeposits || 0) / dollarRate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+            ]}
             icon={<DepositsIcon />}
             bgColor="#7b1fa2"
             subtitle="User funds"
@@ -412,7 +437,10 @@ const Dashboard = () => {
         <Grid item xs={12} sm={6} lg={3}>
           <StatCard
             title="Total Spent"
-            value={`GHS ${(stats.totalSpent || 0).toLocaleString()}`}
+            values={[
+              `GHS ${(stats.totalSpent || 0).toLocaleString()}`,
+              `USD ${((stats.totalSpent || 0) / dollarRate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+            ]}
             icon={<SpentIcon />}
             bgColor="#d32f2f"
             subtitle="On proxies"
@@ -696,6 +724,20 @@ const Dashboard = () => {
                               height: { xs: 20, sm: 24 }
                             }}
                           />
+                          {dollarRate && (
+                            <Chip
+                              label={`$${(tier.price / dollarRate).toFixed(2)}/IP`}
+                              size="small"
+                              sx={{
+                                bgcolor: '#1976d2',
+                                color: 'white',
+                                fontWeight: 600,
+                                fontSize: { xs: '0.6rem', sm: '0.65rem' },
+                                mb: 1,
+                                height: { xs: 18, sm: 20 }
+                              }}
+                            />
+                          )}
                           <Box
                             sx={{
                               bgcolor: 'rgba(46, 125, 50, 0.1)',
@@ -714,6 +756,18 @@ const Dashboard = () => {
                             >
                               ₵{totalPrice.toFixed(2)}
                             </Typography>
+                            {dollarRate && (
+                              <Typography
+                                variant="body2"
+                                sx={{
+                                  fontWeight: 600,
+                                  color: '#1976d2',
+                                  fontSize: { xs: '0.75rem', sm: '0.8rem' }
+                                }}
+                              >
+                                ${(totalPrice / dollarRate).toFixed(2)} USD
+                              </Typography>
+                            )}
                             <Typography
                               variant="caption"
                               color="text.secondary"

@@ -49,6 +49,9 @@ const UserManagement = () => {
   const [editingWallet, setEditingWallet] = useState(false);
   const [newWalletBalance, setNewWalletBalance] = useState(0);
 
+  // Admin-set dollar rate for user balance display
+  const [dollarRate, setDollarRate] = useState(12);
+
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
@@ -102,6 +105,16 @@ const UserManagement = () => {
     setAdminStats(stats);
   };
 
+  const fetchDollarRate = async () => {
+    try {
+      const response = await api.get('/admin/dollar-rate');
+      setDollarRate(response.data.rate);
+    } catch (error) {
+      console.error('Failed to fetch admin dollar rate:', error);
+      // Keep the current rate if fetch fails
+    }
+  };
+
   const fetchCurrentUser = useCallback(async () => {
     try {
       const response = await api.get('/auth/profile');
@@ -115,6 +128,14 @@ const UserManagement = () => {
     fetchUsers();
     fetchAdmins();
     fetchCurrentUser();
+    fetchDollarRate(); // Fetch admin-set dollar rate
+
+    // Set up periodic dollar rate updates every 5 minutes
+    const dollarRateInterval = setInterval(fetchDollarRate, 5 * 60 * 1000);
+
+    return () => {
+      clearInterval(dollarRateInterval);
+    };
   }, [fetchUsers, fetchAdmins, fetchCurrentUser]);
 
   const handleApproveAdmin = async (adminId) => {
@@ -494,17 +515,28 @@ const UserManagement = () => {
               }}>
                 <WalletIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
               </Avatar>
-              <Typography
-                variant="h4"
-                sx={{
-                  fontWeight: 700,
-                  mb: 0.5,
-                  fontSize: { xs: '1.25rem', sm: '1.5rem', md: '1.75rem' },
-                  wordBreak: 'break-word'
-                }}
-              >
-                ₵{stats.totalBalance.toLocaleString()}
-              </Typography>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, alignItems: 'center' }}>
+                <Typography
+                  variant="body1"
+                  sx={{
+                    fontWeight: 600,
+                    fontSize: { xs: '0.875rem', sm: '1rem' },
+                    wordBreak: 'break-word'
+                  }}
+                >
+                  ₵{stats.totalBalance.toLocaleString()}
+                </Typography>
+                <Typography
+                  variant="body1"
+                  sx={{
+                    fontWeight: 600,
+                    fontSize: { xs: '0.875rem', sm: '1rem' },
+                    wordBreak: 'break-word'
+                  }}
+                >
+                  ${(stats.totalBalance / dollarRate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </Typography>
+              </Box>
               <Typography variant="body2" sx={{ opacity: 0.9, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
                 Total Balance
               </Typography>

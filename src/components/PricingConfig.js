@@ -19,6 +19,11 @@ const PricingConfig = () => {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [editingPrice, setEditingPrice] = useState('10');
+  
+  // Dollar rate state
+  const [dollarRate, setDollarRate] = useState('');
+  const [editingDollarRate, setEditingDollarRate] = useState('');
+  const [dollarRateLoading, setDollarRateLoading] = useState(false);
 
   const ipOptions = [5, 10, 25, 50, 100, 200, 300, 400, 800, 1000, 1200, 1600, 2200, 3000];
 
@@ -26,6 +31,7 @@ const PricingConfig = () => {
     fetchCurrentPricing();
     fetchMasterBalance();
     fetchProxyStats();
+    fetchDollarRate();
   }, []);
 
   useEffect(() => {
@@ -99,6 +105,19 @@ const PricingConfig = () => {
     }
   };
 
+  const fetchDollarRate = async () => {
+    try {
+      const response = await api.get('/admin/dollar-rate');
+      setDollarRate(response.data.rate.toString());
+      setEditingDollarRate(response.data.rate.toString());
+    } catch (error) {
+      console.error('Failed to fetch dollar rate:', error);
+      // Set default rate if not found
+      setDollarRate('12.00');
+      setEditingDollarRate('12.00');
+    }
+  };
+
   const getCurrentPrice = () => {
     const group = pricingGroups.find(g => selectedIPs >= g.min && selectedIPs <= g.max);
     return group ? group.price : 10;
@@ -131,6 +150,28 @@ const PricingConfig = () => {
       setError(err.response?.data?.message || 'Failed to update pricing');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDollarRateUpdate = async () => {
+    const newRate = parseFloat(editingDollarRate);
+    if (isNaN(newRate) || newRate <= 0) {
+      setError('Please enter a valid dollar rate');
+      return;
+    }
+
+    setDollarRateLoading(true);
+    setError('');
+    setMessage('');
+
+    try {
+      await api.post('/admin/dollar-rate', { rate: newRate });
+      setDollarRate(newRate.toString());
+      setMessage('Dollar rate updated successfully');
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to update dollar rate');
+    } finally {
+      setDollarRateLoading(false);
     }
   };
 
@@ -249,6 +290,19 @@ const PricingConfig = () => {
               >
                 GHS {getCurrentPrice().toFixed(2)}
               </Typography>
+              {dollarRate && (
+                <Typography 
+                  variant="h6" 
+                  sx={{ 
+                    fontWeight: 600, 
+                    color: '#2e7d32', 
+                    mb: 1,
+                    fontSize: { xs: '1.125rem', sm: '1.25rem', md: '1.5rem' }
+                  }}
+                >
+                  ${(getCurrentPrice() / parseFloat(dollarRate)).toFixed(2)} USD
+                </Typography>
+              )}
               <Typography 
                 variant="body1" 
                 color="text.secondary"
@@ -378,6 +432,98 @@ const PricingConfig = () => {
         </Grid>
       </Grid>
 
+      {/* Dollar Rate Configuration */}
+      <Card sx={{ mt: { xs: 2, sm: 3 }, boxShadow: 2, borderRadius: 2 }}>
+        <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+          <Typography 
+            variant="h6" 
+            gutterBottom 
+            sx={{ 
+              fontWeight: 600,
+              display: 'flex', 
+              alignItems: 'center',
+              fontSize: { xs: '1.125rem', sm: '1.25rem' }
+            }}
+          >
+            <TrendingUpIcon sx={{ mr: 1 }} />
+            Dollar Rate Configuration
+          </Typography>
+          <Typography 
+            variant="body2" 
+            color="text.secondary" 
+            sx={{ 
+              mb: 3,
+              fontSize: { xs: '0.75rem', sm: '0.875rem' }
+            }}
+          >
+            Set the current USD to GHS exchange rate. This rate is used to display prices in USD to users.
+          </Typography>
+          <Grid container spacing={{ xs: 2, sm: 3 }} alignItems="center">
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="USD to GHS Rate"
+                type="number"
+                value={editingDollarRate}
+                onChange={(e) => setEditingDollarRate(e.target.value)}
+                fullWidth
+                inputProps={{ min: 0, step: 0.01 }}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 2
+                  },
+                  '& .MuiInputLabel-root': {
+                    fontSize: { xs: '0.875rem', sm: '1rem' }
+                  },
+                  '& .MuiOutlinedInput-input': {
+                    fontSize: { xs: '0.875rem', sm: '1rem' }
+                  }
+                }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <Button
+                variant="contained"
+                fullWidth
+                startIcon={<SaveIcon />}
+                onClick={handleDollarRateUpdate}
+                disabled={dollarRateLoading}
+                sx={{
+                  py: { xs: 1.5, sm: 1.75 },
+                  borderRadius: 2,
+                  fontWeight: 600,
+                  fontSize: { xs: '0.875rem', sm: '1rem' },
+                  bgcolor: '#2e7d32',
+                  '&:hover': { bgcolor: '#1b5e20' }
+                }}
+              >
+                {dollarRateLoading ? 'Updating...' : 'Update Rate'}
+              </Button>
+            </Grid>
+          </Grid>
+          {dollarRate && (
+            <Box sx={{ mt: 2, p: 2, bgcolor: '#f5f5f5', borderRadius: 2 }}>
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  fontWeight: 600,
+                  color: '#2e7d32',
+                  fontSize: { xs: '0.75rem', sm: '0.875rem' }
+                }}
+              >
+                Current Rate: 1 USD = {parseFloat(dollarRate).toFixed(2)} GHS
+              </Typography>
+              <Typography 
+                variant="body2" 
+                color="text.secondary"
+                sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}
+              >
+                Last updated: {new Date().toLocaleDateString()}
+              </Typography>
+            </Box>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Pricing Tiers Table */}
       <Card sx={{ mt: { xs: 2, sm: 3 }, boxShadow: 2, borderRadius: 2 }}>
         <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
@@ -423,6 +569,18 @@ const PricingConfig = () => {
                   >
                     GHS {group.price.toFixed(2)}
                   </Typography>
+                  {dollarRate && (
+                    <Typography 
+                      variant="body1" 
+                      sx={{ 
+                        fontWeight: 600, 
+                        color: '#2e7d32',
+                        fontSize: { xs: '0.875rem', sm: '1rem' }
+                      }}
+                    >
+                      ${(group.price / parseFloat(dollarRate)).toFixed(2)} USD
+                    </Typography>
+                  )}
                   <Typography 
                     variant="body2" 
                     color="text.secondary"

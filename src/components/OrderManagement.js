@@ -32,6 +32,12 @@ const OrderManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [stats, setStats] = useState({ total: 0, completed: 0, pending: 0, totalRevenue: 0 });
 
+  // Forex rates for order revenue display
+  const [forexRates, setForexRates] = useState({
+    usdToGhs: 12, // Fallback GHS rate
+    lastUpdated: null
+  });
+
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
@@ -49,6 +55,14 @@ const OrderManagement = () => {
 
   useEffect(() => {
     fetchOrders();
+    fetchForexRates(); // Fetch initial forex rates
+
+    // Set up periodic forex rate updates every 5 minutes
+    const forexInterval = setInterval(fetchForexRates, 5 * 60 * 1000);
+
+    return () => {
+      clearInterval(forexInterval);
+    };
   }, [fetchOrders]);
 
   useEffect(() => {
@@ -68,6 +82,26 @@ const OrderManagement = () => {
       totalRevenue: orderList.reduce((sum, o) => sum + o.totalPrice, 0)
     };
     setStats(stats);
+  };
+
+  const fetchForexRates = async () => {
+    try {
+      // Using exchangerate-api.com for free forex rates
+      const response = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
+      const data = await response.json();
+
+      setForexRates({
+        usdToGhs: data.rates.GHS,
+        lastUpdated: new Date()
+      });
+    } catch (error) {
+      console.error('Failed to fetch forex rates:', error);
+      // Fallback to approximate rate if API fails
+      setForexRates({
+        usdToGhs: 12, // Approximate GHS rate
+        lastUpdated: new Date()
+      });
+    }
   };
 
   const handleViewDetails = async (orderId) => {
@@ -341,17 +375,28 @@ const OrderManagement = () => {
               }}>
                 <MoneyIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
               </Avatar>
-              <Typography
-                variant="h4"
-                sx={{
-                  fontWeight: 700,
-                  mb: 0.5,
-                  fontSize: { xs: '1.25rem', sm: '1.5rem', md: '1.75rem' },
-                  wordBreak: 'break-word'
-                }}
-              >
-                ₵{stats.totalRevenue.toLocaleString()}
-              </Typography>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, alignItems: 'center' }}>
+                <Typography
+                  variant="body1"
+                  sx={{
+                    fontWeight: 600,
+                    fontSize: { xs: '0.875rem', sm: '1rem' },
+                    wordBreak: 'break-word'
+                  }}
+                >
+                  ₵{stats.totalRevenue.toLocaleString()}
+                </Typography>
+                <Typography
+                  variant="body1"
+                  sx={{
+                    fontWeight: 600,
+                    fontSize: { xs: '0.875rem', sm: '1rem' },
+                    wordBreak: 'break-word'
+                  }}
+                >
+                  ${(stats.totalRevenue / forexRates.usdToGhs).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </Typography>
+              </Box>
               <Typography variant="body2" sx={{ opacity: 0.9, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
                 Total Revenue
               </Typography>
