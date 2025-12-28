@@ -680,7 +680,7 @@ const PaymentManagement = () => {
                         <EditIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
-                    {transaction.status !== 'completed' && country !== 'crypto' && (
+                    {transaction.status !== 'completed' && (
                       <Tooltip title="Approve">
                         <IconButton
                           size="small"
@@ -691,7 +691,7 @@ const PaymentManagement = () => {
                         </IconButton>
                       </Tooltip>
                     )}
-                    {transaction.status !== 'failed' && country !== 'crypto' && (
+                    {transaction.status !== 'failed' && (
                       <Tooltip title="Disapprove">
                         <IconButton
                           size="small"
