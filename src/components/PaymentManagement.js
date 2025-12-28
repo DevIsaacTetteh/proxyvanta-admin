@@ -442,7 +442,7 @@ const PaymentManagement = () => {
     const displayAmount = country === 'nigeria'
       ? transaction.amount * (exchangeRate || forexRates.usdToNgn)
       : country === 'ghana'
-      ? transaction.amount * forexRates.usdToGhs
+      ? (transaction.ghsAmount ?? (transaction.amount * forexRates.usdToGhs))
       : transaction.amount;
 
     setEditDialog({
@@ -702,7 +702,7 @@ const PaymentManagement = () => {
                     {country === 'nigeria'
                       ? formatCurrency(transaction.amount * (exchangeRate || forexRates.usdToNgn), 'nigeria')
                       : country === 'ghana'
-                      ? formatCurrency(transaction.amount * forexRates.usdToGhs, 'ghana')
+                      ? formatCurrency((transaction.ghsAmount ?? (transaction.amount * forexRates.usdToGhs)), 'ghana')
                       : formatCurrency(transaction.amount, 'crypto')
                     }
                   </Typography>
@@ -841,7 +841,7 @@ const PaymentManagement = () => {
                       fontSize: { xs: '1.5rem', sm: '2.125rem' }
                     }}
                   >
-                    15
+                    {stats.nigerian.totalTransactions}
                   </Typography>
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                     <Typography 
@@ -849,21 +849,21 @@ const PaymentManagement = () => {
                       color="text.secondary"
                       sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
                     >
-                      USD: $23.10
+                      USD: {formatCurrency(stats.nigerian.totalAmount, 'crypto')}
                     </Typography>
                     <Typography 
                       variant="body2" 
                       color="text.secondary"
                       sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
                     >
-                      GHS: ₵254.02
+                      GHS: {formatCurrency((stats.nigerian.totalAmount * forexRates.usdToGhs), 'ghana')}
                     </Typography>
                     <Typography 
                       variant="body2" 
                       color="text.secondary"
                       sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
                     >
-                      NGN: ₦33,715.40
+                      NGN: {formatCurrency(stats.nigerian.totalAmountNGN || (stats.nigerian.totalAmount * (exchangeRate || forexRates.usdToNgn)), 'nigeria')}
                     </Typography>
                   </Box>
                 </Box>
@@ -909,7 +909,7 @@ const PaymentManagement = () => {
                       fontSize: { xs: '1.5rem', sm: '2.125rem' }
                     }}
                   >
-                    113
+                    {stats.ghana.totalTransactions}
                   </Typography>
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                     <Typography 
@@ -917,14 +917,14 @@ const PaymentManagement = () => {
                       color="text.secondary"
                       sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
                     >
-                      GHS: ₵2,514.00
+                      GHS: {formatCurrency((stats.ghana.totalAmount * forexRates.usdToGhs), 'ghana')}
                     </Typography>
                     <Typography 
                       variant="body2" 
                       color="text.secondary"
                       sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
                     >
-                      USD: $228.55
+                      USD: {formatCurrency(stats.ghana.totalAmount, 'crypto')}
                     </Typography>
                   </Box>
                 </Box>

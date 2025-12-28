@@ -4,7 +4,7 @@ import {
   Typography, Box, Card, CardContent,
   Avatar, Chip, TextField, InputAdornment, Grid, CircularProgress,
   IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, Button, Divider,
-  useMediaQuery, useTheme
+  useMediaQuery, useTheme, Select, MenuItem, FormControl, InputLabel, Snackbar, Alert
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -19,7 +19,9 @@ import {
   Person as PersonIcon,
   CalendarToday as CalendarIcon,
   VpnKey as VpnKeyIcon,
-  Numbers as NumbersIcon
+  Numbers as NumbersIcon,
+  FileDownload as DownloadIcon,
+  ContentCopy as ContentCopyIcon
 } from '@mui/icons-material';
 import api from '../services/api';
 
@@ -31,6 +33,10 @@ const OrderManagement = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [stats, setStats] = useState({ total: 0, completed: 0, pending: 0, totalRevenue: 0 });
+  const [statusFilter, setStatusFilter] = useState('');
+  const [countryFilter, setCountryFilter] = useState('');
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
 
   // Forex rates for order revenue display
   const [forexRates, setForexRates] = useState({
@@ -67,12 +73,16 @@ const OrderManagement = () => {
 
   useEffect(() => {
     const filtered = orders.filter(order =>
-      order.user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.status.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (order.country && order.country.toLowerCase().includes(searchTerm.toLowerCase()))
+      (
+        order.user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        order.status.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (order.country && order.country.toLowerCase().includes(searchTerm.toLowerCase()))
+      ) &&
+      (statusFilter ? order.status === statusFilter : true) &&
+      (countryFilter ? (order.country || '') === countryFilter : true)
     );
     setFilteredOrders(filtered);
-  }, [orders, searchTerm]);
+  }, [orders, searchTerm, statusFilter, countryFilter]);
 
   const calculateStats = (orderList) => {
     const stats = {
@@ -120,6 +130,42 @@ const OrderManagement = () => {
   const handleCloseDetails = () => {
     setSelectedOrder(null);
     setOrderDetails(null);
+  };
+
+  const handleCopyCredentials = () => {
+    if (!orderDetails) return;
+    const cred = orderDetails.username && orderDetails.password
+      ? `${orderDetails.username}:${orderDetails.password}`
+      : '';
+    if (!cred) return;
+    navigator.clipboard.writeText(cred).then(() => {
+      setSnackbarMessage('Credentials copied to clipboard');
+      setSnackbarOpen(true);
+    });
+  };
+
+  const handleExportCSV = () => {
+    if (!filteredOrders.length) return;
+    const headers = ['OrderID','Email','Quantity','Country','TotalPriceUSD','Status','CreatedAt'];
+    const rows = filteredOrders.map(o => [
+      o._id,
+      o.user.email,
+      o.quantity,
+      o.country || 'Any',
+      o.totalPrice,
+      o.status,
+      new Date(o.createdAt).toISOString()
+    ]);
+    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `orders_${Date.now()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const getStatusColor = (status) => {
@@ -376,16 +422,31 @@ const OrderManagement = () => {
                 <MoneyIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
               </Avatar>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, alignItems: 'center' }}>
-                <Typography
-                  variant="body1"
-                  sx={{
-                    fontWeight: 600,
-                    fontSize: { xs: '0.875rem', sm: '1rem' },
-                    wordBreak: 'break-word'
-                  }}
-                >
-                  $231.32
-                </Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, alignItems: 'center' }}>
+                  <Typography
+                    variant="body1"
+                    sx={{
+                      fontWeight: 600,
+                      fontSize: { xs: '0.875rem', sm: '1rem' },
+                      wordBreak: 'break-word'
+                    }}
+                  >
+                    ${stats.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      opacity: 0.85,
+                      fontSize: { xs: '0.75rem', sm: '0.875rem' }
+                    }}
+                    color="#fff"
+                  >
+                    GHS: ₵{(stats.totalRevenue * forexRates.usdToGhs).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </Typography>
+                  <Typography variant="caption" sx={{ opacity: 0.8 }} color="#fff">
+                    Rate: {forexRates.usdToGhs?.toFixed ? forexRates.usdToGhs.toFixed(2) : forexRates.usdToGhs} • Updated {forexRates.lastUpdated ? new Date(forexRates.lastUpdated).toLocaleTimeString() : '—'}
+                  </Typography>
+                </Box>
               </Box>
               <Typography variant="body2" sx={{ opacity: 0.9, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
                 Total Revenue
@@ -395,35 +456,80 @@ const OrderManagement = () => {
         </Grid>
       </Grid>
 
-      {/* Search */}
+      {/* Search & Filters */}
       <Card sx={{ borderRadius: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.08)', mb: 3 }}>
         <CardContent sx={{ p: 3 }}>
-          <TextField
-            fullWidth
-            placeholder="Search orders by email, status, or country..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon color="action" />
-                </InputAdornment>
-              ),
-            }}
-            sx={{
-              maxWidth: '400px',
-              '& .MuiOutlinedInput-root': {
-                borderRadius: 2,
-                backgroundColor: 'rgba(102, 126, 234, 0.04)',
-                '&:hover': {
-                  backgroundColor: 'rgba(102, 126, 234, 0.08)',
-                },
-                '&.Mui-focused': {
-                  backgroundColor: 'rgba(102, 126, 234, 0.08)',
-                }
-              }
-            }}
-          />
+          <Grid container spacing={2} alignItems="center">
+            <Grid item xs={12} md={4}>
+              <TextField
+                fullWidth
+                placeholder="Search orders by email, status, or country..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon color="action" />
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 2,
+                    backgroundColor: 'rgba(102, 126, 234, 0.04)',
+                    '&:hover': {
+                      backgroundColor: 'rgba(102, 126, 234, 0.08)',
+                    },
+                    '&.Mui-focused': {
+                      backgroundColor: 'rgba(102, 126, 234, 0.08)',
+                    }
+                  }
+                }}
+              />
+            </Grid>
+            <Grid item xs={6} md={3}>
+              <FormControl fullWidth size="small">
+                <InputLabel id="status-filter-label">Status</InputLabel>
+                <Select
+                  labelId="status-filter-label"
+                  label="Status"
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                >
+                  <MenuItem value="">All</MenuItem>
+                  <MenuItem value="completed">Completed</MenuItem>
+                  <MenuItem value="pending">Pending</MenuItem>
+                  <MenuItem value="cancelled">Cancelled</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={6} md={3}>
+              <FormControl fullWidth size="small">
+                <InputLabel id="country-filter-label">Country</InputLabel>
+                <Select
+                  labelId="country-filter-label"
+                  label="Country"
+                  value={countryFilter}
+                  onChange={(e) => setCountryFilter(e.target.value)}
+                >
+                  <MenuItem value="">All</MenuItem>
+                  {[...new Set(orders.map(o => o.country).filter(Boolean))].map((c) => (
+                    <MenuItem key={c} value={c}>{c}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={2} sx={{ textAlign: { xs: 'left', md: 'right' } }}>
+              <Button
+                variant="outlined"
+                startIcon={<DownloadIcon />}
+                onClick={handleExportCSV}
+                sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
+              >
+                Export CSV
+              </Button>
+            </Grid>
+          </Grid>
         </CardContent>
       </Card>
       {/* Orders List - Mobile Cards / Desktop Table */}
@@ -668,6 +774,9 @@ const OrderManagement = () => {
                             fontSize: { xs: '0.875rem', sm: '1rem' }
                           }}>
                             ${order.totalPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                            ₵{(order.totalPrice * forexRates.usdToGhs).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </Typography>
                         </TableCell>
                         <TableCell align="center">
@@ -920,6 +1029,13 @@ const OrderManagement = () => {
                               {orderDetails.password || 'Not assigned'}
                             </Typography>
                           </Box>
+                          {orderDetails.username && orderDetails.password && (
+                            <Tooltip title="Copy credentials">
+                              <IconButton onClick={handleCopyCredentials} sx={{ color: 'primary.main' }}>
+                                <ContentCopyIcon />
+                              </IconButton>
+                            </Tooltip>
+                          )}
                         </Box>
                       </CardContent>
                     </Card>
@@ -1089,8 +1205,37 @@ const OrderManagement = () => {
           >
             Close
           </Button>
+          {orderDetails && orderDetails.username && orderDetails.password && (
+            <Button
+              onClick={handleCopyCredentials}
+              variant="contained"
+              color="primary"
+              startIcon={<ContentCopyIcon />}
+              fullWidth={{ xs: true, sm: false }}
+              sx={{
+                borderRadius: 2,
+                textTransform: 'none',
+                fontWeight: 600,
+                order: { xs: 2, sm: 1 },
+                minHeight: { xs: '44px', sm: 'auto' }
+              }}
+            >
+              Copy Credentials
+            </Button>
+          )}
         </DialogActions>
       </Dialog>
+      {/* Snackbar */}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={3000}
+        onClose={() => setSnackbarOpen(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert severity="success" onClose={() => setSnackbarOpen(false)} sx={{ width: '100%' }}>
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

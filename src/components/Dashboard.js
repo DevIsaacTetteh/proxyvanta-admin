@@ -32,8 +32,10 @@ const Dashboard = () => {
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalOrders: 0,
-    totalDeposits: 0,
-    totalSpent: 0,
+    totalDepositsUSD: 0,
+    totalDepositsGHS: 0,
+    totalSpentUSD: 0,
+    totalSpentGHS: 0,
     countryStats: {}
   });
   const [ipStats, setIpStats] = useState({
@@ -51,7 +53,8 @@ const Dashboard = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(new Date());
   const [autoRefresh, setAutoRefresh] = useState(true);
-  const [ghanaExchangeRate, setGhanaExchangeRate] = useState(null);
+  const [usersWalletSummary, setUsersWalletSummary] = useState({ totalBalanceUSD: 0, totalBalanceGHS: 0 });
+  const [ordersSummary, setOrdersSummary] = useState({ totalRevenueUSD: 0, totalRevenueGHS: 0, completedOrders: 0, pendingOrders: 0 });
 
   useEffect(() => {
     fetchStats();
@@ -69,7 +72,7 @@ const Dashboard = () => {
   const fetchStats = async () => {
     try {
       setRefreshing(true);
-      const [dashboardRes, depositsRes, spentRes, ipStatsRes, topIPTiersRes, topUsersRes, pricingRes, exchangeRateRes] = await Promise.all([
+      const [dashboardRes, depositsRes, spentRes, ipStatsRes, topIPTiersRes, topUsersRes, pricingRes, usersWalletRes, ordersSummaryRes] = await Promise.all([
         api.get('/admin/dashboard'),
         api.get('/admin/stats/deposits'),
         api.get('/admin/stats/spent'),
@@ -77,14 +80,17 @@ const Dashboard = () => {
         api.get('/admin/stats/top-ip-tiers?limit=5'),
         api.get('/admin/stats/top-users?limit=5'),
         api.get('/admin/pricing'),
-        api.get('/admin/ghana-payments/exchange-rate').catch(() => ({ data: { rate: null } }))
+        api.get('/admin/stats/users-wallet'),
+        api.get('/admin/stats/orders-summary')
       ]);
 
       setStats({
         totalUsers: dashboardRes.data.totalUsers || 0,
         totalOrders: dashboardRes.data.totalOrders || 0,
-        totalDeposits: depositsRes.data.totalDeposits || 0,
-        totalSpent: spentRes.data.totalSpent || 0,
+        totalDepositsUSD: depositsRes.data.totalDepositsUSD || 0,
+        totalDepositsGHS: depositsRes.data.totalDepositsGHS || 0,
+        totalSpentUSD: spentRes.data.totalSpentUSD || 0,
+        totalSpentGHS: spentRes.data.totalSpentGHS || 0,
         countryStats: dashboardRes.data.countryStats || {}
       });
 
@@ -94,7 +100,16 @@ const Dashboard = () => {
         topUsers: topUsersRes.data.topUsers
       });
       setPricing(pricingRes.data.pricings || []);
-      setGhanaExchangeRate(exchangeRateRes.data.rate);
+      setUsersWalletSummary({
+        totalBalanceUSD: usersWalletRes.data.totalBalanceUSD || 0,
+        totalBalanceGHS: usersWalletRes.data.totalBalanceGHS || 0
+      });
+      setOrdersSummary({
+        totalRevenueUSD: ordersSummaryRes.data.totalRevenueUSD || 0,
+        totalRevenueGHS: ordersSummaryRes.data.totalRevenueGHS || 0,
+        completedOrders: ordersSummaryRes.data.completedOrders || 0,
+        pendingOrders: ordersSummaryRes.data.pendingOrders || 0
+      });
       setLastUpdated(new Date());
     } catch (error) {
       console.error('Failed to fetch dashboard stats:', error);
@@ -303,10 +318,6 @@ const Dashboard = () => {
         <Grid item xs={12} sm={6} lg={3}>
           <Card
             sx={{
-              height: '100%',
-              background: 'linear-gradient(135deg, #1976d2 0%, #1976d2dd 100%)',
-              color: 'white',
-              position: 'relative',
               overflow: 'hidden',
               '&::before': {
                 content: '""',
@@ -438,8 +449,8 @@ const Dashboard = () => {
           <StatCard
             title="Total Deposits"
             values={[
-              `USD ${(stats.totalDeposits || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-              ghanaExchangeRate ? `GHS ${((stats.totalDeposits || 0) * ghanaExchangeRate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'GHS Rate not set'
+              `USD = $${(stats.totalDepositsUSD || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+              stats.totalDepositsGHS ? `GHS = ₵${(stats.totalDepositsGHS || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'GHS = Rate not set'
             ]}
             icon={<DepositsIcon />}
             bgColor="#7b1fa2"
@@ -450,12 +461,40 @@ const Dashboard = () => {
           <StatCard
             title="Total Spent"
             values={[
-              `USD ${(stats.totalSpent || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-              ghanaExchangeRate ? `GHS ${((stats.totalSpent || 0) * ghanaExchangeRate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'GHS Rate not set'
+              `USD = $${(stats.totalSpentUSD || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+              stats.totalSpentGHS ? `GHS = ₵${(stats.totalSpentGHS || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'GHS = Rate not set'
             ]}
             icon={<SpentIcon />}
             bgColor="#d32f2f"
             subtitle="On proxies"
+          />
+        </Grid>
+      </Grid>
+
+      {/* Financial Overview */}
+      <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ mt: { xs: 2, sm: 3 } }}>
+        <Grid item xs={12} sm={6}>
+          <StatCard
+            title="Total Revenue"
+            values={[
+              `USD = $${(ordersSummary.totalRevenueUSD || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+              ordersSummary.totalRevenueGHS ? `GHS = ₵${(ordersSummary.totalRevenueGHS || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'GHS = Rate not set'
+            ]}
+            icon={<BarChartIcon />}
+            bgColor="#1976d2"
+            subtitle={`Completed Orders: ${(ordersSummary.completedOrders || 0).toLocaleString()}`}
+          />
+        </Grid>
+        <Grid item xs={12} sm={6}>
+          <StatCard
+            title="Users Wallet Balance"
+            values={[
+              `USD = $${(usersWalletSummary.totalBalanceUSD || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+              usersWalletSummary.totalBalanceGHS ? `GHS = ₵${(usersWalletSummary.totalBalanceGHS || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'GHS = Rate not set'
+            ]}
+            icon={<MonetizationOn />}
+            bgColor="#2e7d32"
+            subtitle="User funds on platform"
           />
         </Grid>
       </Grid>
@@ -978,7 +1017,7 @@ const Dashboard = () => {
                       color="text.secondary"
                       sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
                     >
-                      Revenue Generated: {ghanaExchangeRate ? `GHS ${((stats.totalSpent || 0) * ghanaExchangeRate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'GHS Rate not set'} (estimated)
+                      Revenue Generated: {stats.totalSpentGHS ? `GHS ${(stats.totalSpentGHS || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'GHS 0.00'} (estimated)
                     </Typography>
                   </Box>
                   <Box sx={{ display: 'flex', alignItems: 'center' }}>

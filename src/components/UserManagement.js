@@ -41,6 +41,7 @@ const UserManagement = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [stats, setStats] = useState({ total: 0, active: 0, admins: 0, totalBalance: 0 });
+  const [ghanaRate, setGhanaRate] = useState(null);
   const [currentTab, setCurrentTab] = useState(0);
   const [admins, setAdmins] = useState([]);
   const [adminStats, setAdminStats] = useState({ total: 0, pending: 0, approved: 0 });
@@ -115,6 +116,16 @@ const UserManagement = () => {
     fetchUsers();
     fetchAdmins();
     fetchCurrentUser();
+
+    // Fetch Ghana exchange rate for balance conversion
+    (async () => {
+      try {
+        const res = await api.get('/admin/ghana-payments/exchange-rate');
+        setGhanaRate(res.data.rate || null);
+      } catch (_) {
+        setGhanaRate(null);
+      }
+    })();
 
     return () => {
       // Cleanup if needed
@@ -462,6 +473,7 @@ const UserManagement = () => {
             </CardContent>
           </Card>
         </Grid>
+
         <Grid item xs={12} sm={6} md={3}>
           <Card sx={{
             borderRadius: 3,
@@ -507,15 +519,26 @@ const UserManagement = () => {
                     wordBreak: 'break-word'
                   }}
                 >
-                  ${stats.totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  USD: ${stats.totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </Typography>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    opacity: 0.85,
+                    fontSize: { xs: '0.75rem', sm: '0.875rem' }
+                  }}
+                  color="text.secondary"
+                >
+                  GHS: {ghanaRate ? `₵${(stats.totalBalance * ghanaRate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'Rate not set'}
                 </Typography>
               </Box>
               <Typography variant="body2" sx={{ opacity: 0.9, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
-                Total Balance
+                Total User Wallet Balance
               </Typography>
             </CardContent>
           </Card>
         </Grid>
+
       </Grid>
 
       {/* Search and Filters */}
